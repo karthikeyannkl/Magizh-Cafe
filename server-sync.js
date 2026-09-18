@@ -106,5 +106,5 @@
   // repeatedly downloading large product-photo payloads while an admin is typing.
   pull();
   setInterval(flushPending, 2000);
-  setInterval(pull, 15000);
+  setInterval(pull, 20000);
 })();

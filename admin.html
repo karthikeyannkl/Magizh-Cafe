@@ -9,7 +9,7 @@
 const DEFAULT_PRODUCTS=[["Powders", "Garlic Powder 250g", 100, "🌶️"], ["Powders", "Dal Powder 250g", 100, "🌾"], ["Powders", "Sesame Powder 250g", 100, "🌾"], ["Powders", "Chutney Powder 250g", 100, "🌿"], ["Powders", "Peanut Powder 250g", 100, "🥜"], ["Powders", "Vallarai Powder 250g", 100, "🌿"], ["Powders", "Curry Leaf Powder 250g", 100, "🌿"], ["Powders", "Moringa Powder 250g", 100, "🌿"], ["Powders", "Horse Gram Powder 250g", 100, "🌾"], ["Thokku & Pickles", "Curry Leaf Thokku 250g", 120, "🌿"], ["Thokku & Pickles", "Coriander Thokku 250g", 120, "🌿"], ["Thokku & Pickles", "Banana Flower Thokku 250g", 120, "🌸"], ["Thokku & Pickles", "Bitter Gourd Thokku 250g", 120, "🥒"], ["Thokku & Pickles", "Garlic Thokku 250g", 120, "🧄"], ["Thokku & Pickles", "Pirandai Thokku 250g", 120, "🌿"], ["Thokku & Pickles", "Lemon Pickle 250g", 120, "🍋"], ["Thokku & Pickles", "Citron Pickle 250g", 120, "🍋"], ["Soaps", "Gram Flour Soap", 100, "🧼"], ["Soaps", "Goat Milk Soap", 100, "🧼"], ["Soaps", "Kuppaimeni Soap", 100, "🧼"], ["Soaps", "Beetroot Soap", 100, "🧼"], ["Soaps", "Tulsi Soap", 100, "🌿"], ["Millet Laddus & Balls", "Peanut Ball", 100, "🥜"], ["Millet Laddus & Balls", "Sesame Ball", 100, "🌾"], ["Millet Laddus & Balls", "Ragi Ball", 100, "🟤"], ["Millet Laddus & Balls", "Foxtail Millet Ball", 100, "🟤"], ["Millet Laddus & Balls", "Pearl Millet Ball", 100, "🟤"], ["Millet Laddus & Balls", "Moong Dal Ball", 100, "🟢"], ["Millet Laddus & Balls", "Roasted Gram Ball", 100, "🟡"], ["Aval Varieties", "Mapillai Samba Aval 250g", 150, "🌾"], ["Aval Varieties", "Karuppu Kavuni Aval 250g", 150, "🌾"], ["Aval Varieties", "Kattuyanam Aval 250g", 150, "🌾"], ["Traditional Rice", "Mapillai Samba Rice 500g", 200, "🌾"], ["Traditional Rice", "Karuppu Kavuni Rice 500g", 200, "🌾"], ["Traditional Rice", "Kattuyanam Rice 500g", 200, "🌾"], ["Traditional Rice", "Bamboo Rice 500g", 200, "🌾"], ["Traditional Rice", "Poongar Rice 500g", 200, "🌾"], ["Traditional Rice", "Red Rice 500g", 200, "🌾"], ["Millets", "Barnyard Millet", 150, "🌾"], ["Millets", "Little Millet", 150, "🌾"], ["Millets", "Foxtail Millet", 150, "🌾"], ["Millets", "Pearl Millet", 150, "🌾"], ["Millets", "Sorghum", 150, "🌾"], ["Herbal Tea & Coffee", "Herbal Tea", 100, "☕"], ["Herbal Tea & Coffee", "Ashwagandha Coffee", 100, "☕"], ["Herbal Tea & Coffee", "Sugar Down Tea", 100, "☕"], ["Herbal Tea & Coffee", "Ulcer Care Coffee", 100, "☕"], ["Herbal Tea & Coffee", "Constipation Relief Coffee", 100, "☕"], ["Herbal Tea & Coffee", "Sleep Support Coffee", 100, "☕"], ["Millet Biscuits", "Pearl Millet Biscuit", 120, "🍪"], ["Millet Biscuits", "Barnyard Millet Biscuit", 120, "🍪"], ["Millet Biscuits", "Avaram Flower Biscuit", 120, "🌼"], ["Millet Biscuits", "Mudakathan Biscuit", 120, "🍪"], ["Country Sugar", "Herbal Country Sugar 500g", 100, "🍯"], ["Country Sugar", "Country Sugar 500g", 100, "🍯"]];
 const DEFAULT_CATS=[...new Set(DEFAULT_PRODUCTS.map(p=>p[0]))];
 function products(){const x=JSON.parse(localStorage.getItem('magizhProducts')||'null');return Array.isArray(x)?x:DEFAULT_PRODUCTS}
-function cats(){const x=JSON.parse(localStorage.getItem('magizhCategories')||'null');return Array.isArray(x)?x:DEFAULT_CATS}
+function cats(){const x=JSON.parse(localStorage.getItem('magizhCategories')||'null');return Array.isArray(x)?x.filter(c=>String(c).trim().toLowerCase()!=='all'):DEFAULT_CATS}
 function settings(){return Object.assign({min:0,courier:50,upi:'magizhcafe@upi',address:'Traditional food, thoughtfully made',instagram:'',facebook:'',whatsapp:''},JSON.parse(localStorage.getItem('magizhSettings')||'{}'))}
 function save(k,v){localStorage.setItem(k,JSON.stringify(v))}
 function esc(x){return String(x??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))}
@@ -47,7 +47,7 @@ function drawProductList(){
     <div></div>
   </div>`).join('')||'<div class="empty">No products found.</div>';
 }
-function fileData(id){return new Promise(resolve=>{const f=document.getElementById(id).files[0];if(!f)return resolve('');const r=new FileReader();r.onload=e=>resolve(e.target.result);r.readAsDataURL(f)})}
+function fileData(id){return new Promise(resolve=>{const f=document.getElementById(id).files[0];if(!f)return resolve('');if(f.size>12*1024*1024){alert('Please choose an image below 12 MB.');return resolve('')}const r=new FileReader();r.onload=e=>{const img=new Image();img.onload=()=>{const max=1400,scale=Math.min(1,max/Math.max(img.width,img.height));const c=document.createElement('canvas');c.width=Math.max(1,Math.round(img.width*scale));c.height=Math.max(1,Math.round(img.height*scale));c.getContext('2d').drawImage(img,0,0,c.width,c.height);resolve(c.toDataURL('image/jpeg',.82))};img.onerror=()=>resolve(e.target.result);img.src=e.target.result};r.readAsDataURL(f)})}
 let productSaving=false;
 async function addProduct(){
   if(productSaving)return;
@@ -236,20 +236,16 @@ function renderSocial(){const s=settings();document.getElementById('social').inn
 function saveSocial(){const s=settings();s.address=addressVal.value.trim();s.instagram=instagramVal.value.trim();s.facebook=facebookVal.value.trim();s.whatsapp=whatsappVal.value.trim();s.phone=phoneVal.value.trim();s.hours=hoursVal.value.trim();save('magizhSettings',s);alert('Contact & social details saved.')}
 function resetDemo(){if(!confirm('Reset demo data?'))return;['magizhProducts','magizhCategories','magizhSettings','magizhOrders','magizhUsers','magizhCoinWallet'].forEach(k=>localStorage.removeItem(k));render('orders');}
 render('orders');
+const adminDirty=new Set();
+document.addEventListener('input',function(e){const page=e.target.closest('.page');if(page&&['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName))adminDirty.add(page.id)});
+document.addEventListener('click',function(e){const b=e.target.closest('button');if(b&&b.closest('.page')){const page=b.closest('.page');adminDirty.delete(page.id)}});
 window.addEventListener('magizhServerSync',function(){
   const active=document.querySelector('.tab.active');
   const id=active && active.getAttribute('onclick')?.match(/show\('([^']+)'/)?.[1] || 'orders';
-  const page=document.getElementById(id);
-  const ae=document.activeElement;
-
-  // Server polling must never rebuild a page while an admin is entering data.
-  // Rebuilding innerHTML destroys the focused input and makes typed text appear
-  // to erase itself. File inputs are also protected until the user saves them.
-  const typing=page && ae && page.contains(ae) && ['INPUT','TEXTAREA','SELECT'].includes(ae.tagName);
-  const hasFiles=page && page.querySelectorAll('input[type=file]').length &&
-    Array.from(page.querySelectorAll('input[type=file]')).some(x=>x.files && x.files.length);
-  if(typing || hasFiles) return;
-
+  const page=document.getElementById(id),ae=document.activeElement;
+  const typing=page&&ae&&page.contains(ae)&&['INPUT','TEXTAREA','SELECT'].includes(ae.tagName);
+  const hasFiles=page&&Array.from(page.querySelectorAll('input[type=file]')).some(x=>x.files&&x.files.length);
+  if(typing||hasFiles||adminDirty.has(id))return;
   render(id);
 });
 </script><div class="fullScreenModal" id="imageViewer" onclick="closeImageViewer(event)"><button class="closeFull" onclick="closeImageViewer(event)">×</button><img id="fullPaymentImage" alt="Payment screenshot"></div><style>#adminLoginGate{position:fixed;inset:0;background:#f7f1e8;z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px}#adminLoginGate .box{width:min(390px,100%);background:#fff;border-radius:22px;padding:24px}#adminLoginGate input,#adminLoginGate button{width:100%;box-sizing:border-box;padding:13px;border-radius:12px;margin:7px 0}#adminLoginGate button{border:0;background:#e67e22;color:#fff;font-weight:700}</style><div id="adminLoginGate"><div class="box"><h2>Admin Login</h2><input id="adminUser" placeholder="Username"><input id="adminPass" type="password" placeholder="Password"><button onclick="adminSignIn()">Login</button></div></div><script>function adminSignIn(){if(document.getElementById('adminUser').value==='admin'&&document.getElementById('adminPass').value==='123456'){sessionStorage.setItem('magizhAdminAuth','1');document.getElementById('adminLoginGate').style.display='none'}else alert('Invalid username or password.')}document.addEventListener('DOMContentLoaded',()=>{if(sessionStorage.getItem('magizhAdminAuth')==='1')document.getElementById('adminLoginGate').style.display='none'});</script><script>window.MAGIZH_SYNC_KEYS=['magizhUsers','magizhOrders','magizhProducts','magizhCategories','magizhSettings','magizhB5','magizhCoinWallet'];</script><script src="/server-sync.js"></script>
