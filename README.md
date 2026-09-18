@@ -39,3 +39,8 @@ Final test corrections included:
 9. CommonJS Node server; no "type": "module" conflict.
 
 This is still a temporary test server. Final production should use the real database/server and secure authentication.
+
+
+## Latest two fixes
+1. Payment screenshot is preserved and Confirm Payment no longer loses the screenshot or shows a false upload-required message.
+2. Admin Product Add/Edit stays open while typing/selecting photos; the 5-second server sync no longer clears the form.

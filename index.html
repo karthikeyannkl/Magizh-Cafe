@@ -183,7 +183,7 @@ body{margin:0 auto}
     <div id="screenshotStatus" class="paynote"></div>
   </div>
 
-  <button class="nextbtn" id="finalPlaceBtn" onclick="completePaymentAndPlace()" disabled>Confirm Payment →</button>
+  <button type="button" class="nextbtn" id="finalPlaceBtn" onclick="completePaymentAndPlace(event)" disabled>Confirm Payment →</button>
   <button class="backbtn" onclick="showStep(3)">← Back to Order Summary</button>
   <div class="paynote">Your payment screenshot will be saved with the order for admin verification.</div>
 </div>
@@ -263,11 +263,116 @@ function getPayTotals(){const productTotal=getProductTotal();const available=Mat
 function updatePaymentBox(){const x=getPayTotals();document.getElementById('payProductTotal').textContent=x.productTotal;document.getElementById('payCoin').textContent=x.coin;document.getElementById('payAmount').textContent=x.pay;const pc=document.getElementById('payCourier');if(pc)pc.textContent=x.courier;['courierDisplay','courierDisplay2','courierDisplay3'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=x.courier});document.getElementById('couponBtn').textContent=couponUsed?'✓ Coins Used':'Use Coins';document.getElementById('couponBtn').classList.toggle('used',couponUsed);const displayBalance=Math.max(0,getWallet()-reservedCoins);updateAllCoinDisplays(displayBalance);const st=document.getElementById('screenshotStatus');if(st&&!paymentScreenshotData)st.textContent=couponUsed?'✓ ₹'+x.coin+' coins reserved. Wallet balance shown: '+displayBalance+' coins.':'No coins selected.'}
 function useCoupon(){if(couponUsed){reservedCoins=0;couponUsed=false}else{const productTotal=getProductTotal();reservedCoins=Math.min(Math.floor(productTotal*0.5),getWallet());couponUsed=reservedCoins>0}updatePaymentBox()}
 function selectPayment(method){selectedPayment='UPI';document.querySelectorAll('input[name="paymethod"]').forEach(r=>r.checked=(r.value==='UPI'));document.querySelectorAll('.payoption').forEach(x=>x.classList.toggle('active',x.querySelector('input')?.value==='UPI'));document.getElementById('upiArea').style.display='block'}
-function goPayment(){couponUsed=false;reservedCoins=0;coinWalletAtPayment=getWallet();paymentScreenshotData='';const file=document.getElementById('paymentScreenshot');if(file)file.value='';const img=document.getElementById('screenshotPreview');if(img){img.style.display='none';img.src=''}const btn=document.getElementById('finalPlaceBtn');if(btn){btn.disabled=true;btn.style.opacity='.55'}const st=document.getElementById('screenshotStatus');if(st)st.textContent='Select “Use Coins” to apply up to 50% of your product value.';updatePaymentBox();const upi=getUpiId();const el=document.getElementById('displayUpi');if(el)el.textContent=upi;showStep(4)}
-function getUpiId(){const s=JSON.parse(localStorage.getItem('magizhSettings')||'null');return(s&&s.upi)?String(s.upi).trim():'magizhcafe@upi'}
+function goPayment(){
+  couponUsed=false;
+  reservedCoins=0;
+  coinWalletAtPayment=getWallet();
+
+  const file=document.getElementById('paymentScreenshot');
+  const img=document.getElementById('screenshotPreview');
+  const btn=document.getElementById('finalPlaceBtn');
+  const st=document.getElementById('screenshotStatus');
+
+  let savedShot='';
+  try{savedShot=sessionStorage.getItem('magizhPaymentScreenshot')||'';}catch(e){}
+
+  if(savedShot){
+    paymentScreenshotData=savedShot;
+    if(img){
+      img.src=savedShot;
+      img.style.display='block';
+    }
+    if(st)st.textContent='✓ Screenshot attached. Confirm Payment is now available.';
+    if(btn){
+      btn.disabled=false;
+      btn.style.opacity='1';
+    }
+  }else{
+    paymentScreenshotData='';
+    if(file)file.value='';
+    if(img){
+      img.style.display='none';
+      img.src='';
+    }
+    if(btn){
+      btn.disabled=true;
+      btn.style.opacity='.55';
+    }
+    if(st)st.textContent='Select “Use Coins” to apply up to 50% of your product value.';
+  }
+
+  updatePaymentBox();
+
+  const upi=getUpiId();
+  const el=document.getElementById('displayUpi');
+  if(el)el.textContent=upi;
+
+  showStep(4);
+}
+
+function getUpiId(){function getUpiId(){const s=JSON.parse(localStorage.getItem('magizhSettings')||'null');return(s&&s.upi)?String(s.upi).trim():'magizhcafe@upi'}
 function payNow(){const x=getPayTotals();if(x.pay<=0){alert('No payment is required.');return}const upi=getUpiId();const uri='upi://pay?pa='+encodeURIComponent(upi)+'&pn='+encodeURIComponent('Magizh Cafe')+'&am='+encodeURIComponent(x.pay.toFixed(2))+'&cu=INR&tn='+encodeURIComponent('Magizh Cafe Order');window.location.href=uri}
-function handleScreenshot(input){const file=input.files&&input.files[0];if(!file){paymentScreenshotData='';document.getElementById('finalPlaceBtn').disabled=true;return}if(!file.type.startsWith('image/')){alert('Please upload an image screenshot.');input.value='';return}if(file.size>5*1024*1024){alert('Please upload a screenshot below 5 MB.');input.value='';return}const reader=new FileReader();reader.onload=function(e){paymentScreenshotData=e.target.result;const img=document.getElementById('screenshotPreview');img.src=paymentScreenshotData;img.style.display='block';document.getElementById('screenshotStatus').textContent='✓ Screenshot attached. Confirm Payment is now available.';const btn=document.getElementById('finalPlaceBtn');if(btn){btn.disabled=false;btn.style.opacity='1';}};reader.readAsDataURL(file)}
-function openLogin(){
+function handleScreenshot(input){
+  const file=input.files&&input.files[0];
+
+  if(!file){
+    paymentScreenshotData='';
+    try{sessionStorage.removeItem('magizhPaymentScreenshot');}catch(e){}
+    const btn=document.getElementById('finalPlaceBtn');
+    if(btn){btn.disabled=true;btn.style.opacity='.55';}
+    return;
+  }
+
+  if(!file.type.startsWith('image/')){
+    alert('Please upload an image screenshot.');
+    input.value='';
+    return;
+  }
+
+  if(file.size>5*1024*1024){
+    alert('Please upload a screenshot below 5 MB.');
+    input.value='';
+    return;
+  }
+
+  const reader=new FileReader();
+
+  reader.onload=function(e){
+    paymentScreenshotData=e.target.result;
+
+    try{
+      sessionStorage.setItem(
+        'magizhPaymentScreenshot',
+        paymentScreenshotData
+      );
+    }catch(err){}
+
+    const img=document.getElementById('screenshotPreview');
+    if(img){
+      img.src=paymentScreenshotData;
+      img.style.display='block';
+    }
+
+    const st=document.getElementById('screenshotStatus');
+    if(st){
+      st.textContent='✓ Screenshot attached. Confirm Payment is now available.';
+    }
+
+    const btn=document.getElementById('finalPlaceBtn');
+    if(btn){
+      btn.disabled=false;
+      btn.style.opacity='1';
+    }
+  };
+
+  reader.onerror=function(){
+    alert('The screenshot could not be read. Please select it again.');
+  };
+
+  reader.readAsDataURL(file);
+}
+
+function openLogin(){function openLogin(){
   ['registerModal','newUserRegisterModal','b5RegisterModal'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none'});
   const m=document.getElementById('loginModal'); if(m)m.style.display='flex';
   const p=document.getElementById('loginPhone'); if(p)p.focus();
@@ -392,24 +497,35 @@ function verifyB5RegisterOtp(){
   updateAllCoinDisplays(Number(users[id].coins||0)); syncCustomerHeader(); closeRegister();
   alert('B5 login successful.');
 }
-async function completePaymentAndPlace(){
+async function completePaymentAndPlace(event){
+  if(event){
+    event.preventDefault();
+    event.stopPropagation();
+  }
+
   const x=getPayTotals();
 
   let screenshotData=paymentScreenshotData;
 
-  // Robust fallback: use the actual file input if the in-memory variable was cleared.
+  if(!screenshotData){
+    try{
+      screenshotData=sessionStorage.getItem('magizhPaymentScreenshot')||'';
+    }catch(e){}
+  }
+
   if(x.pay>0 && !screenshotData){
     const input=document.getElementById('paymentScreenshot');
-    const file=input && input.files && input.files[0];
+    const file=input&&input.files&&input.files[0];
 
     if(file){
       if(!file.type.startsWith('image/')){
         alert('Please upload an image screenshot.');
-        return;
+        return false;
       }
+
       if(file.size>5*1024*1024){
         alert('Please upload a screenshot below 5 MB.');
-        return;
+        return false;
       }
 
       screenshotData=await new Promise((resolve,reject)=>{
@@ -420,12 +536,19 @@ async function completePaymentAndPlace(){
       });
 
       paymentScreenshotData=screenshotData;
+
+      try{
+        sessionStorage.setItem(
+          'magizhPaymentScreenshot',
+          screenshotData
+        );
+      }catch(e){}
     }
   }
 
   if(x.pay>0 && !screenshotData){
     alert('Please upload your UPI payment screenshot before confirming payment.');
-    return;
+    return false;
   }
 
   const orders=JSON.parse(localStorage.getItem('magizhOrders')||'[]');
@@ -449,7 +572,7 @@ async function completePaymentAndPlace(){
     amountPaid:x.pay,
     paymentMethod:selectedPayment,
     paymentStatus:'UPI - Screenshot submitted for verification',
-    paymentScreenshot:screenshotData||'',
+    paymentScreenshot:screenshotData,
     userId:getLoggedUser()?(getLoggedUser().id||sessionStorage.getItem('magizhCurrentUserId')||''):sessionStorage.getItem('magizhCurrentUserId')||'',
     delivery:'7–10 days',
     items:cart.map(x=>({
@@ -466,6 +589,8 @@ async function completePaymentAndPlace(){
   couponUsed=false;
   reservedCoins=0;
   paymentScreenshotData='';
+
+  try{sessionStorage.removeItem('magizhPaymentScreenshot');}catch(e){}
 
   const input=document.getElementById('paymentScreenshot');
   if(input)input.value='';
@@ -486,8 +611,10 @@ async function completePaymentAndPlace(){
     'Amount paid: ₹'+x.pay+'\n' +
     'Delivery: 7–10 days'
   );
+
+  return false;
 }
-function updateFooter(){const s=JSON.parse(localStorage.getItem('magizhSettings')||'{}');const a=document.getElementById('footerAddress');if(a)a.textContent=s.address||'Traditional food, thoughtfully made';[['footerInstagram','instagram'],['footerFacebook','facebook'],['footerWhatsApp','whatsapp']].forEach(([id,k])=>{const e=document.getElementById(id);if(e&&s[k])e.href=s[k]});}
+function updateFooter(){function updateFooter(){const s=JSON.parse(localStorage.getItem('magizhSettings')||'{}');const a=document.getElementById('footerAddress');if(a)a.textContent=s.address||'Traditional food, thoughtfully made';[['footerInstagram','instagram'],['footerFacebook','facebook'],['footerWhatsApp','whatsapp']].forEach(([id,k])=>{const e=document.getElementById(id);if(e&&s[k])e.href=s[k]});}
 renderCategories();renderProducts();updateCart();updateAllCoinDisplays(getWallet());syncCustomerHeader();updateFooter();
 </script>
 
