@@ -310,7 +310,7 @@ function goPayment(){
   showStep(4);
 }
 
-function getUpiId(){function getUpiId(){const s=JSON.parse(localStorage.getItem('magizhSettings')||'null');return(s&&s.upi)?String(s.upi).trim():'magizhcafe@upi'}
+function getUpiId(){const s=JSON.parse(localStorage.getItem('magizhSettings')||'null');return(s&&s.upi)?String(s.upi).trim():'magizhcafe@upi'}
 function payNow(){const x=getPayTotals();if(x.pay<=0){alert('No payment is required.');return}const upi=getUpiId();const uri='upi://pay?pa='+encodeURIComponent(upi)+'&pn='+encodeURIComponent('Magizh Cafe')+'&am='+encodeURIComponent(x.pay.toFixed(2))+'&cu=INR&tn='+encodeURIComponent('Magizh Cafe Order');window.location.href=uri}
 function handleScreenshot(input){
   const file=input.files&&input.files[0];
@@ -372,7 +372,7 @@ function handleScreenshot(input){
   reader.readAsDataURL(file);
 }
 
-function openLogin(){function openLogin(){
+function openLogin(){
   ['registerModal','newUserRegisterModal','b5RegisterModal'].forEach(id=>{const e=document.getElementById(id);if(e)e.style.display='none'});
   const m=document.getElementById('loginModal'); if(m)m.style.display='flex';
   const p=document.getElementById('loginPhone'); if(p)p.focus();
@@ -690,5 +690,5 @@ window.addEventListener('magizhServerSync',function(){
   }
 });
 </script>
-<script src="/server-sync.js"></script>
+<script>window.MAGIZH_SYNC_KEYS=['magizhProducts','magizhCategories','magizhSettings','magizhUsers','magizhB5','magizhOrders','magizhCoinWallet'];</script><script src="/server-sync.js"></script>
 </body></html>

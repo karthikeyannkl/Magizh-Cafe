@@ -1,0 +1,27 @@
+{
+  "updatedAt": 1789743776719,
+  "expiresAt": 1792335776719,
+  "ttlDays": 30,
+  "state": {
+    "magizhUsers": {},
+    "magizhOrders": [],
+    "magizhProducts": [
+      [
+        "Powders",
+        "A",
+        100
+      ]
+    ],
+    "magizhCategories": [
+      "All",
+      "Powders"
+    ],
+    "magizhSettings": {
+      "courier": 50
+    },
+    "magizhB5": {},
+    "magizhCoinWallet": "0",
+    "magizhCurrentUser": null,
+    "magizhCurrentUserId": "GUEST"
+  }
+}

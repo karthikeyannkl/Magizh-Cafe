@@ -48,10 +48,15 @@ function drawProductList(){
   </div>`).join('')||'<div class="empty">No products found.</div>';
 }
 function fileData(id){return new Promise(resolve=>{const f=document.getElementById(id).files[0];if(!f)return resolve('');const r=new FileReader();r.onload=e=>resolve(e.target.result);r.readAsDataURL(f)})}
+let productSaving=false;
 async function addProduct(){
+  if(productSaving)return;
   const name=pName.value.trim();
   if(!name)return alert('Enter product name.');
 
+  productSaving=true;
+  const addBtn=document.querySelector('#products .primary');
+  if(addBtn){addBtn.disabled=true;addBtn.textContent='Saving Product…';}
   const a=products();
   a.push([
     pCat.value,
@@ -64,7 +69,8 @@ async function addProduct(){
   ]);
 
   save('magizhProducts',a);
-  alert('Product added successfully.');
+  productSaving=false;
+  alert('Product added successfully. It is saved locally immediately and syncing to the server in the background.');
   renderProducts();
 }
 function openImageManager(i){const p=products()[i];if(!p)return;document.getElementById('imageModal').style.display='block';document.getElementById('imageManagerBody').innerHTML=`<div class="muted">${esc(p[1])}</div><div class="row">${[1,2,3].map(k=>`<div><label>Photo ${k}</label>${p[3+k]?`<img class="preview" src="${p[3+k]}" alt="Photo ${k}"><br><button class="danger" onclick="removePhoto(${i},${k})">Remove Photo ${k}</button>`:'<div class="muted">No photo</div>'}<input id="photoFile${k}" type="file" accept="image/*" style="margin-top:6px"></div>`).join('')}</div><button class="primary" onclick="savePhotos(${i})" style="margin-top:12px">Save Photos</button>`}
@@ -233,25 +239,18 @@ render('orders');
 window.addEventListener('magizhServerSync',function(){
   const active=document.querySelector('.tab.active');
   const id=active && active.getAttribute('onclick')?.match(/show\('([^']+)'/)?.[1] || 'orders';
+  const page=document.getElementById(id);
+  const ae=document.activeElement;
 
-  if(id==='products'){
-    const ae=document.activeElement;
-    const productPage=document.getElementById('products');
-
-    // Never rebuild the Product Add/Edit form while the admin is typing
-    // or selecting product images.
-    if(
-      productPage &&
-      (
-        productPage.contains(ae) ||
-        productPage.querySelector('input[type="file"]')?.files?.length
-      )
-    ){
-      return;
-    }
-  }
+  // Server polling must never rebuild a page while an admin is entering data.
+  // Rebuilding innerHTML destroys the focused input and makes typed text appear
+  // to erase itself. File inputs are also protected until the user saves them.
+  const typing=page && ae && page.contains(ae) && ['INPUT','TEXTAREA','SELECT'].includes(ae.tagName);
+  const hasFiles=page && page.querySelectorAll('input[type=file]').length &&
+    Array.from(page.querySelectorAll('input[type=file]')).some(x=>x.files && x.files.length);
+  if(typing || hasFiles) return;
 
   render(id);
 });
-</script><div class="fullScreenModal" id="imageViewer" onclick="closeImageViewer(event)"><button class="closeFull" onclick="closeImageViewer(event)">×</button><img id="fullPaymentImage" alt="Payment screenshot"></div><style>#adminLoginGate{position:fixed;inset:0;background:#f7f1e8;z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px}#adminLoginGate .box{width:min(390px,100%);background:#fff;border-radius:22px;padding:24px}#adminLoginGate input,#adminLoginGate button{width:100%;box-sizing:border-box;padding:13px;border-radius:12px;margin:7px 0}#adminLoginGate button{border:0;background:#e67e22;color:#fff;font-weight:700}</style><div id="adminLoginGate"><div class="box"><h2>Admin Login</h2><input id="adminUser" placeholder="Username"><input id="adminPass" type="password" placeholder="Password"><button onclick="adminSignIn()">Login</button></div></div><script>function adminSignIn(){if(document.getElementById('adminUser').value==='admin'&&document.getElementById('adminPass').value==='123456'){sessionStorage.setItem('magizhAdminAuth','1');document.getElementById('adminLoginGate').style.display='none'}else alert('Invalid username or password.')}document.addEventListener('DOMContentLoaded',()=>{if(sessionStorage.getItem('magizhAdminAuth')==='1')document.getElementById('adminLoginGate').style.display='none'});</script><script src="/server-sync.js"></script>
+</script><div class="fullScreenModal" id="imageViewer" onclick="closeImageViewer(event)"><button class="closeFull" onclick="closeImageViewer(event)">×</button><img id="fullPaymentImage" alt="Payment screenshot"></div><style>#adminLoginGate{position:fixed;inset:0;background:#f7f1e8;z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px}#adminLoginGate .box{width:min(390px,100%);background:#fff;border-radius:22px;padding:24px}#adminLoginGate input,#adminLoginGate button{width:100%;box-sizing:border-box;padding:13px;border-radius:12px;margin:7px 0}#adminLoginGate button{border:0;background:#e67e22;color:#fff;font-weight:700}</style><div id="adminLoginGate"><div class="box"><h2>Admin Login</h2><input id="adminUser" placeholder="Username"><input id="adminPass" type="password" placeholder="Password"><button onclick="adminSignIn()">Login</button></div></div><script>function adminSignIn(){if(document.getElementById('adminUser').value==='admin'&&document.getElementById('adminPass').value==='123456'){sessionStorage.setItem('magizhAdminAuth','1');document.getElementById('adminLoginGate').style.display='none'}else alert('Invalid username or password.')}document.addEventListener('DOMContentLoaded',()=>{if(sessionStorage.getItem('magizhAdminAuth')==='1')document.getElementById('adminLoginGate').style.display='none'});</script><script>window.MAGIZH_SYNC_KEYS=['magizhUsers','magizhOrders','magizhProducts','magizhCategories','magizhSettings','magizhB5','magizhCoinWallet'];</script><script src="/server-sync.js"></script>
 </body></html>

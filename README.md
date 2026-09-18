@@ -1,53 +1,34 @@
-# Magizh Cafe - FINAL Test Upload
+# Magizh Cafe – Stable Sync Final Package
 
-Upload all files directly into the GitHub repository ROOT.
+This package keeps the approved Magizh Cafe design and fixes the repeated data/sync problems.
 
-Files:
-- README.md
-- admin.html
-- index.html
-- package.json
-- server-sync.js
-- server.js
+## Included
+- index.html – customer page
+- admin.html – admin page
+- server.js – Node/Render server
+- server-sync.js – reliable client/server synchronization
+- package.json – Render start configuration
 
-No folders are required.
+## Fixes in this version
+1. Customer product cards render correctly. A malformed JavaScript function in the previous file was preventing the customer script from running.
+2. Admin typing is protected across Products, Categories, Users & Coins, Settings, Social & Contact, and search fields. Server polling no longer rebuilds the active form while typing.
+3. Product Add renders immediately after the local save and syncs in the background. The Add button is protected from accidental double-clicks while photos are being read.
+4. Server writes are serialized so simultaneous updates cannot overwrite each other.
+5. Server state requests can fetch only the keys needed by the current page instead of downloading the entire state on every poll.
+6. Polling is reduced to 15 seconds to avoid repeatedly transferring large product-photo data.
+7. Unsynced local changes are protected from being overwritten by a server pull.
+8. Payment screenshot flow from the previous approved version is retained.
+9. Stable product category+name keys are retained for Edit/Delete.
 
-Render:
-Root Directory: blank
-Build Command: npm install
-Start Command: node server.js
-Environment Variable:
-DATA_TTL_DAYS=30
+## Render
+Use Node. The start command is:
+`node server.js`
 
-15-day test:
-DATA_TTL_DAYS=15
+The server uses a temporary JSON file store (`magizh-test-data.json`). It is suitable for the current test/demo workflow, not a production database. Render filesystem persistence depends on the service/storage setup, so a real persistent database/object storage should be used before production.
 
-URLs:
-Customer: /
-Admin: /admin
-Health: /api/health
+## Admin login
+Username: `admin`
+Password: `123456`
 
-Final test corrections included:
-1. New User registration starts with 0 Coins.
-2. New User does not show the coin/welcome card when balance is 0.
-3. B5 users keep their existing coin balance.
-4. Admin User Coins can search by User ID OR Mobile Number and shows customer name/details.
-5. Admin Product Delete persists and removes the product from customer view after sync.
-6. Admin Product Add persists and appears on customer view after sync.
-7. Payment screenshot confirmation uses both the stored screenshot state and the actual selected file as a fallback, preventing the false "Please upload screenshot" message.
-8. Admin/customer pages refresh when server data is pulled.
-9. CommonJS Node server; no "type": "module" conflict.
-
-This is still a temporary test server. Final production should use the real database/server and secure authentication.
-
-
-## Latest two fixes
-1. Payment screenshot is preserved and Confirm Payment no longer loses the screenshot or shows a false upload-required message.
-2. Admin Product Add/Edit stays open while typing/selecting photos; the 5-second server sync no longer clears the form.
-
-
-## Latest product sync/delete fix
-- Fixed the customer page JavaScript parsing issue that prevented product cards from rendering.
-- Customer page now refreshes product/category data after server sync.
-- Admin product Delete/Edit uses a stable category+product-name key, so a background sync cannot invalidate the clicked product index.
-- Server sync now protects unsaved local changes from being overwritten by a stale 5-second pull.
+## Important
+Upload/replace the complete files from this ZIP together. Do not mix the old `index.html`, `admin.html`, `server.js`, or `server-sync.js` with these files.

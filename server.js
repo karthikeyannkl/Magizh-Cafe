@@ -7,6 +7,20 @@ const TTL_DAYS = Math.max(1, Number(process.env.DATA_TTL_DAYS || 30));
 const ROOT = process.cwd();
 const DATA_FILE = path.join(ROOT, "magizh-test-data.json");
 
+// Serialize state writes inside this Node process. Without a queue, two near-simultaneous
+// PUT requests could each read the same old store and the later write could erase the other change.
+let writeQueue = Promise.resolve();
+
+function queuedStateWrite(mutator) {
+  const job = writeQueue.then(() => {
+    const store = readStore();
+    mutator(store.state);
+    return writeStore(store.state);
+  });
+  writeQueue = job.catch(() => {});
+  return job;
+}
+
 const DEFAULT_STATE = {
   magizhUsers: {},
   magizhOrders: [],
@@ -169,13 +183,20 @@ const server = http.createServer(async (req, res) => {
       url.pathname === "/api/state"
     ) {
       const store = readStore();
+      const rawKeys = String(url.searchParams.get("keys") || "").trim();
+      const keys = rawKeys
+        ? rawKeys.split(",").map(x => x.trim()).filter(Boolean)
+        : null;
+      const state = keys
+        ? Object.fromEntries(keys.map(k => [k, Object.prototype.hasOwnProperty.call(store.state, k) ? store.state[k] : null]))
+        : store.state;
 
       return sendJson(res, 200, {
         ok: true,
         ttlDays: TTL_DAYS,
         updatedAt: store.updatedAt,
         expiresAt: store.expiresAt,
-        state: store.state
+        state
       });
     }
 
@@ -192,11 +213,9 @@ const server = http.createServer(async (req, res) => {
         });
       }
 
-      const store = readStore();
-
-      store.state[body.key] = body.value;
-
-      const saved = writeStore(store.state);
+      const saved = await queuedStateWrite(state => {
+        state[body.key] = body.value;
+      });
 
       return sendJson(res, 200, {
         ok: true,
@@ -223,11 +242,8 @@ const server = http.createServer(async (req, res) => {
         });
       }
 
-      const store = readStore();
-
-      const saved = writeStore({
-        ...store.state,
-        ...body.state
+      const saved = await queuedStateWrite(state => {
+        Object.assign(state, body.state);
       });
 
       return sendJson(res, 200, {
