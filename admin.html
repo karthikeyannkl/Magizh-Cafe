@@ -30,7 +30,23 @@ function viewPayment(id){const o=findOrder(id);if(!o||!o.paymentScreenshot)retur
 function closeImageViewer(e){if(e){e.stopPropagation();if(e.target.id==='fullPaymentImage')return}document.getElementById('imageViewer').style.display='none';document.getElementById('fullPaymentImage').src=''}
 function downloadPayment(id){const o=findOrder(id);if(!o||!o.paymentScreenshot)return;const a=document.createElement('a');a.href=o.paymentScreenshot;a.download=(o.id||'payment')+'-screenshot.png';document.body.appendChild(a);a.click();a.remove()}
 function renderProducts(){const a=products();document.getElementById('products').innerHTML=`<div class="panel"><h2>Product Add / Edit</h2><div class="grid"><div><label>Category</label><select id="pCat">${cats().map(c=>`<option>${esc(c)}</option>`).join('')}</select></div><div><label>Product Name</label><input id="pName" placeholder="Product name"></div><div><label>Price (₹)</label><input id="pPrice" type="number" min="0" placeholder="100"></div><div><label>Emoji / Placeholder</label><input id="pEmoji" placeholder="🌾"></div></div><label>Product Photos (3)</label><div class="row"><input id="img1" type="file" accept="image/*"><input id="img2" type="file" accept="image/*"><input id="img3" type="file" accept="image/*"></div><button class="primary" onclick="addProduct()" style="margin-top:10px">Add Product</button></div><div class="panel"><input class="search" id="pSearch" placeholder="Search products..." oninput="drawProductList()"><div id="productList"></div></div>`;drawProductList()}
-function drawProductList(){const q=(document.getElementById('pSearch')?.value||'').toLowerCase();const a=products().filter(p=>p[1].toLowerCase().includes(q));document.getElementById('productList').innerHTML=a.map((p,idx)=>`<div class="product"><div class="thumb" style="background-image:url('${p[4]||''}')">${p[4]?'':'🌾'}</div><div><b>${esc(p[1])}</b><br><span class="pill">${esc(p[0])}</span> <b>₹${p[2]}</b><br><button class="secondary" onclick="editProduct(${products().indexOf(p)})">Edit</button> <button class="danger" onclick="deleteProduct(${products().indexOf(p)})">Delete</button></div><div></div></div>`).join('')||'<div class="empty">No products found.</div>'}
+function productKey(p){
+  return encodeURIComponent(String(p[0]||'')+'||'+String(p[1]||''));
+}
+function drawProductList(){
+  const q=(document.getElementById('pSearch')?.value||'').toLowerCase();
+  const a=products().filter(p=>String(p[1]||'').toLowerCase().includes(q));
+  document.getElementById('productList').innerHTML=a.map(p=>`<div class="product">
+    <div class="thumb" style="background-image:url('${p[4]||''}')">${p[4]?'':'🌾'}</div>
+    <div>
+      <b>${esc(p[1])}</b><br>
+      <span class="pill">${esc(p[0])}</span> <b>₹${p[2]}</b><br>
+      <button class="secondary" onclick="editProductByKey('${productKey(p)}')">Edit</button>
+      <button class="danger" onclick="deleteProductByKey('${productKey(p)}')">Delete</button>
+    </div>
+    <div></div>
+  </div>`).join('')||'<div class="empty">No products found.</div>';
+}
 function fileData(id){return new Promise(resolve=>{const f=document.getElementById(id).files[0];if(!f)return resolve('');const r=new FileReader();r.onload=e=>resolve(e.target.result);r.readAsDataURL(f)})}
 async function addProduct(){
   const name=pName.value.trim();
@@ -56,19 +72,35 @@ function closeImageManager(){document.getElementById('imageModal').style.display
 function removePhoto(i,k){const a=products();if(a[i]){a[i][3+k]='';save('magizhProducts',a);openImageManager(i);drawProductList()}}
 async function savePhotos(i){const a=products(),p=a[i];if(!p)return;for(let k=1;k<=3;k++){const f=document.getElementById('photoFile'+k);if(f&&f.files[0]){const r=new FileReader();await new Promise(res=>{r.onload=e=>{p[3+k]=e.target.result;res()};r.readAsDataURL(f.files[0])})}}save('magizhProducts',a);alert('Photos updated.');closeImageManager();drawProductList()}
 function editProduct(i){const a=products(),p=a[i];const name=prompt('Product name',p[1]);if(name===null)return;const price=prompt('Price',p[2]);if(price===null)return;p[1]=name.trim()||p[1];p[2]=Number(price)||0;const c=prompt('Category',p[0]);if(c!==null&&c.trim())p[0]=c.trim();save('magizhProducts',a);renderProducts()}
-function deleteProduct(i){
+function findProductIndexByKey(encodedKey){
+  let key='';
+  try{key=decodeURIComponent(encodedKey||'');}catch(e){key=String(encodedKey||'');}
+  const sep=key.indexOf('||');
+  const cat=sep>=0?key.slice(0,sep):'';
+  const name=sep>=0?key.slice(sep+2):key;
+  const a=products();
+  return a.findIndex(p=>String(p[0]||'')===cat && String(p[1]||'')===name);
+}
+function editProductByKey(encodedKey){
+  const i=findProductIndexByKey(encodedKey);
+  if(i<0){alert('Product not found. Please refresh the Products page and try again.');return;}
+  editProduct(i);
+}
+function deleteProductByKey(encodedKey){
   if(!confirm('Delete this product?'))return;
 
   const a=products();
+  const i=findProductIndexByKey(encodedKey);
 
-  if(i<0 || i>=a.length){
-    alert('Product not found.');
+  if(i<0){
+    alert('Product not found. Please refresh the Products page and try again.');
     return;
   }
 
+  const removed=a[i];
   a.splice(i,1);
   save('magizhProducts',a);
-  alert('Product deleted successfully.');
+  alert('Product deleted successfully: '+removed[1]);
   renderProducts();
 }
 function renderCategories(){const a=cats();document.getElementById('categories').innerHTML=`<div class="panel"><h2>Category Add / Delete</h2><div class="row"><input id="newCat" placeholder="New category name"><button class="primary" onclick="addCat()">Add Category</button></div></div><div class="panel">${a.map(c=>`<div class="product"><div class="pill">${esc(c)}</div><div></div><button class="danger" onclick="deleteCat('${esc(c)}')">Delete</button></div>`).join('')}</div>`}

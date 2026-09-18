@@ -44,3 +44,10 @@ This is still a temporary test server. Final production should use the real data
 ## Latest two fixes
 1. Payment screenshot is preserved and Confirm Payment no longer loses the screenshot or shows a false upload-required message.
 2. Admin Product Add/Edit stays open while typing/selecting photos; the 5-second server sync no longer clears the form.
+
+
+## Latest product sync/delete fix
+- Fixed the customer page JavaScript parsing issue that prevented product cards from rendering.
+- Customer page now refreshes product/category data after server sync.
+- Admin product Delete/Edit uses a stable category+product-name key, so a background sync cannot invalidate the clicked product index.
+- Server sync now protects unsaved local changes from being overwritten by a stale 5-second pull.

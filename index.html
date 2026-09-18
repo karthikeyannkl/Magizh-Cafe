@@ -614,7 +614,7 @@ async function completePaymentAndPlace(event){
 
   return false;
 }
-function updateFooter(){function updateFooter(){const s=JSON.parse(localStorage.getItem('magizhSettings')||'{}');const a=document.getElementById('footerAddress');if(a)a.textContent=s.address||'Traditional food, thoughtfully made';[['footerInstagram','instagram'],['footerFacebook','facebook'],['footerWhatsApp','whatsapp']].forEach(([id,k])=>{const e=document.getElementById(id);if(e&&s[k])e.href=s[k]});}
+function updateFooter(){const s=JSON.parse(localStorage.getItem('magizhSettings')||'{}');const a=document.getElementById('footerAddress');if(a)a.textContent=s.address||'Traditional food, thoughtfully made';[['footerInstagram','instagram'],['footerFacebook','facebook'],['footerWhatsApp','whatsapp']].forEach(([id,k])=>{const e=document.getElementById(id);if(e&&s[k])e.href=s[k]});}
 renderCategories();renderProducts();updateCart();updateAllCoinDisplays(getWallet());syncCustomerHeader();updateFooter();
 </script>
 
@@ -676,5 +676,19 @@ document.addEventListener('DOMContentLoaded',function(){
 });
 </script>
 
+<script>
+window.addEventListener('magizhServerSync',function(){
+  try{
+    renderCategories();
+    renderProducts();
+    updateCart();
+    updateAllCoinDisplays(getWallet());
+    syncCustomerHeader();
+    updateFooter();
+  }catch(e){
+    console.error('Customer server sync render error',e);
+  }
+});
+</script>
 <script src="/server-sync.js"></script>
 </body></html>
