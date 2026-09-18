@@ -142,7 +142,7 @@ body{margin:0 auto}
   </div>
 </div>
 
-<div class="modal" id="productModal"><div class="sheet"><button class="close" onclick="closeProduct()">×</button><span class="ey">PRODUCT DETAILS</span><h2 id="mname"></h2><div class="gallery"><div class="g" id="g1"></div><div class="g" id="g2"></div><div class="g" id="g3"></div></div><div id="mprice" style="font-weight:bold;font-size:17px"></div><p>Three product photos can be replaced with your actual photos later.</p><div class="coinbox">🪙 B5 Balance: <b><span id="modalCoinBalance">500</span> Magizh Coins</b></div><div class="actions"><button class="add" onclick="addCurrent()">🛒 Add to Cart</button><button class="buy" onclick="addCurrent();openCart()">Buy Now</button></div></div></div>
+<div class="modal" id="productModal"><div class="sheet"><button class="close" onclick="closeProduct()">×</button><span class="ey">PRODUCT DETAILS</span><h2 id="mname"></h2><div class="gallery"><div class="g" id="g1"></div><div class="g" id="g2"></div><div class="g" id="g3"></div></div><div id="mprice" style="font-weight:bold;font-size:17px"></div><p>Three product photos can be replaced with your actual photos later.</p><div class="coinbox">🪙 B5 Balance: <b><span id="modalCoinBalance">0</span> Magizh Coins</b></div><div class="actions"><button class="add" onclick="addCurrent()">🛒 Add to Cart</button><button class="buy" onclick="addCurrent();openCart()">Buy Now</button></div></div></div>
 
 <div class="modal" id="cartModal"><div class="sheet"><button class="close" onclick="closeCart()">×</button><span class="ey">CHECKOUT</span><h2 id="checkoutTitle">Your Cart</h2><div class="stepbar"><div class="step active" id="s1">1 CART</div><div class="step" id="s2">2 ADDRESS</div><div class="step" id="s3">3 CONFIRM</div><div class="step" id="s4">4 PAY</div></div>
 <div class="checkoutstep active" id="step1"><div id="cartItems"></div><div class="notice"><b>Minimum Bill Value: <span id="minDisplay">No minimum</span></b><br>Minimum value is controlled from Admin Settings.</div><div class="notice">🚚 <b>Courier Charge: ₹<span id="courierDisplay">50</span></b><br>Delivery: <b>7–10 days</b> after order confirmation.</div><div id="bill1"></div><button class="nextbtn" onclick="goAddress()">Continue to Address →</button></div>
@@ -152,7 +152,7 @@ body{margin:0 auto}
 <div class="checkoutstep" id="step4">
   <div class="couponbox">
     <div class="couponline">
-      <div><b>🪙 B5 Magizh Coins</b><br><span style="font-size:9px;color:#786b5e">Available balance: <span id="coinBalance">500</span> coins = ₹<span id="coinBalanceValue">500</span></span></div>
+      <div><b>🪙 B5 Magizh Coins</b><br><span style="font-size:9px;color:#786b5e">Available balance: <span id="coinBalance">0</span> coins = ₹<span id="coinBalanceValue">0</span></span></div>
       <button class="couponbtn" id="couponBtn" onclick="useCoupon()">Use Coins</button>
     </div>
     <div class="paynote">Use coins for up to 50% of your product value. Courier charges are not eligible for coin payment.</div>
@@ -328,18 +328,41 @@ function registerNewUserFinal(){
   const phone=document.getElementById('regMobile').value.trim();
   const age=document.getElementById('regAge').value.trim();
   const address=document.getElementById('regAddress').value.trim();
-  if(!name||!/^\d{10}$/.test(phone)||!age||!address){alert('Please complete Name, Mobile Number, Age and Address.');return}
+  if(!name||!/^[0-9]{10}$/.test(phone)||!age||!address){
+    alert('Please complete Name, Mobile Number, Age and Address.');
+    return;
+  }
   const users=getUsers();
   const existing=Object.keys(users).find(k=>String(users[k].phone||'')===phone);
-  if(existing){alert('This mobile number is already registered. Please login with OTP.');return}
+  if(existing){
+    alert('This mobile number is already registered. Please login with OTP.');
+    return;
+  }
+
   const id='MC-'+phone.slice(-6);
-  users[id]={id,name,phone,age,address,coins:500,memberType:'Normal',registeredAt:new Date().toISOString()};
+
+  // NEW USER: no welcome/free coins.
+  users[id]={
+    id,
+    name,
+    phone,
+    age,
+    address,
+    coins:0,
+    memberType:'Normal',
+    registeredAt:new Date().toISOString()
+  };
+
   localStorage.setItem('magizhUsers',JSON.stringify(users));
   sessionStorage.setItem('magizhCurrentUser',JSON.stringify(users[id]));
   sessionStorage.setItem('magizhCurrentUserId',id);
-  localStorage.setItem('magizhCoinWallet','500');
-  updateAllCoinDisplays(500); syncCustomerHeader(); closeRegister();
-  alert('Registration successful. 500 B5 Coins have been added to your wallet.');
+  localStorage.setItem('magizhCoinWallet','0');
+
+  updateAllCoinDisplays(0);
+  syncCustomerHeader();
+  closeRegister();
+
+  alert('Registration successful. Your account has been created with 0 Coins.');
 }
 let b5DemoOtp='';
 function sendB5RegisterOtp(){
@@ -369,23 +392,100 @@ function verifyB5RegisterOtp(){
   updateAllCoinDisplays(Number(users[id].coins||0)); syncCustomerHeader(); closeRegister();
   alert('B5 login successful.');
 }
-function completePaymentAndPlace(){
+async function completePaymentAndPlace(){
   const x=getPayTotals();
-  if(x.pay>0 && !paymentScreenshotData){alert('Please upload your UPI payment screenshot before confirming payment.');return}
+
+  let screenshotData=paymentScreenshotData;
+
+  // Robust fallback: use the actual file input if the in-memory variable was cleared.
+  if(x.pay>0 && !screenshotData){
+    const input=document.getElementById('paymentScreenshot');
+    const file=input && input.files && input.files[0];
+
+    if(file){
+      if(!file.type.startsWith('image/')){
+        alert('Please upload an image screenshot.');
+        return;
+      }
+      if(file.size>5*1024*1024){
+        alert('Please upload a screenshot below 5 MB.');
+        return;
+      }
+
+      screenshotData=await new Promise((resolve,reject)=>{
+        const reader=new FileReader();
+        reader.onload=e=>resolve(e.target.result);
+        reader.onerror=()=>reject(new Error('Screenshot could not be read.'));
+        reader.readAsDataURL(file);
+      });
+
+      paymentScreenshotData=screenshotData;
+    }
+  }
+
+  if(x.pay>0 && !screenshotData){
+    alert('Please upload your UPI payment screenshot before confirming payment.');
+    return;
+  }
+
   const orders=JSON.parse(localStorage.getItem('magizhOrders')||'[]');
   const id='MG'+Date.now();
-  if(x.coin>0) setWallet(Math.max(0,getWallet()-x.coin));
+
+  if(x.coin>0){
+    setWallet(Math.max(0,getWallet()-x.coin));
+  }
+
   orders.push({
-    id:id,date:new Date().toLocaleString(),name:cname.value.trim(),phone:phone.value.trim(),
-    pincode:pincode.value.trim(),address:addr.value.trim(),subtotal:x.productTotal,courier:x.courier,
-    total:x.productTotal+x.courier,coinUsed:x.coin,amountPaid:x.pay,paymentMethod:selectedPayment,
-    paymentStatus:'UPI - Screenshot submitted for verification',paymentScreenshot:paymentScreenshotData,
+    id:id,
+    date:new Date().toLocaleString(),
+    name:cname.value.trim(),
+    phone:phone.value.trim(),
+    pincode:pincode.value.trim(),
+    address:addr.value.trim(),
+    subtotal:x.productTotal,
+    courier:x.courier,
+    total:x.productTotal+x.courier,
+    coinUsed:x.coin,
+    amountPaid:x.pay,
+    paymentMethod:selectedPayment,
+    paymentStatus:'UPI - Screenshot submitted for verification',
+    paymentScreenshot:screenshotData||'',
     userId:getLoggedUser()?(getLoggedUser().id||sessionStorage.getItem('magizhCurrentUserId')||''):sessionStorage.getItem('magizhCurrentUserId')||'',
-    delivery:'7–10 days',items:cart.map(x=>({name:getCatalog()[x.i][1],qty:x.q,price:getCatalog()[x.i][2]})),status:'Payment Verification Pending'
+    delivery:'7–10 days',
+    items:cart.map(x=>({
+      name:getCatalog()[x.i][1],
+      qty:x.q,
+      price:getCatalog()[x.i][2]
+    })),
+    status:'Payment Verification Pending'
   });
+
   localStorage.setItem('magizhOrders',JSON.stringify(orders));
-  cart=[];couponUsed=false;paymentScreenshotData='';updateCart();cartModal.style.display='none';
-  alert('Order submitted successfully!\nPayment screenshot received.\nOrder ID: '+id+'\nAmount paid: ₹'+x.pay+'\nDelivery: 7–10 days');
+
+  cart=[];
+  couponUsed=false;
+  reservedCoins=0;
+  paymentScreenshotData='';
+
+  const input=document.getElementById('paymentScreenshot');
+  if(input)input.value='';
+
+  const img=document.getElementById('screenshotPreview');
+  if(img){
+    img.src='';
+    img.style.display='none';
+  }
+
+  updateCart();
+  cartModal.style.display='none';
+
+  alert(
+    'Order submitted successfully!\n' +
+    'Payment screenshot received.\n' +
+    'Order ID: '+id+'\n' +
+    'Amount paid: ₹'+x.pay+'\n' +
+    'Delivery: 7–10 days'
+  );
 }
 function updateFooter(){const s=JSON.parse(localStorage.getItem('magizhSettings')||'{}');const a=document.getElementById('footerAddress');if(a)a.textContent=s.address||'Traditional food, thoughtfully made';[['footerInstagram','instagram'],['footerFacebook','facebook'],['footerWhatsApp','whatsapp']].forEach(([id,k])=>{const e=document.getElementById(id);if(e&&s[k])e.href=s[k]});}
 renderCategories();renderProducts();updateCart();updateAllCoinDisplays(getWallet());syncCustomerHeader();updateFooter();
@@ -397,9 +497,15 @@ renderCategories();renderProducts();updateCart();updateAllCoinDisplays(getWallet
 function getLoggedUser(){try{return JSON.parse(sessionStorage.getItem('magizhCurrentUser')||'null')}catch(e){return null}}
 function syncCustomerHeader(){
   const u=getLoggedUser();
-  const coin=document.getElementById('topCoin'),login=document.getElementById('loginTopBtn'),orders=document.getElementById('ordersTopBtn'),cartBtn=document.getElementById('viewCartTopBtn'),logout=document.getElementById('logoutTopBtn');
+  const coin=document.getElementById('topCoin');
+  const login=document.getElementById('loginTopBtn');
+  const orders=document.getElementById('ordersTopBtn');
+  const cartBtn=document.getElementById('viewCartTopBtn');
+  const logout=document.getElementById('logoutTopBtn');
+
   if(!u){
-    const reward=document.getElementById('welcomeReward'); if(reward)reward.style.display='none';
+    const reward=document.getElementById('welcomeReward');
+    if(reward)reward.style.display='none';
     if(coin)coin.style.display='none';
     if(login)login.style.display='block';
     if(orders)orders.style.display='none';
@@ -407,8 +513,19 @@ function syncCustomerHeader(){
     if(logout)logout.style.display='none';
     return;
   }
-  const reward=document.getElementById('welcomeReward'); if(reward)reward.style.display='flex';
-  if(coin){coin.style.display='block';const b=document.getElementById('topCoinBalance');if(b)b.textContent=String(getWallet())}
+
+  const balance=Math.max(0,Number(getWallet())||0);
+  const showCoins=balance>0;
+
+  const reward=document.getElementById('welcomeReward');
+  if(reward)reward.style.display=showCoins?'flex':'none';
+
+  if(coin){
+    coin.style.display=showCoins?'block':'none';
+    const b=document.getElementById('topCoinBalance');
+    if(b)b.textContent=String(balance);
+  }
+
   if(login)login.style.display='none';
   if(orders)orders.style.display='block';
   if(cartBtn)cartBtn.style.display='block';

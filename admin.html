@@ -8,8 +8,8 @@
 <script>
 const DEFAULT_PRODUCTS=[["Powders", "Garlic Powder 250g", 100, "🌶️"], ["Powders", "Dal Powder 250g", 100, "🌾"], ["Powders", "Sesame Powder 250g", 100, "🌾"], ["Powders", "Chutney Powder 250g", 100, "🌿"], ["Powders", "Peanut Powder 250g", 100, "🥜"], ["Powders", "Vallarai Powder 250g", 100, "🌿"], ["Powders", "Curry Leaf Powder 250g", 100, "🌿"], ["Powders", "Moringa Powder 250g", 100, "🌿"], ["Powders", "Horse Gram Powder 250g", 100, "🌾"], ["Thokku & Pickles", "Curry Leaf Thokku 250g", 120, "🌿"], ["Thokku & Pickles", "Coriander Thokku 250g", 120, "🌿"], ["Thokku & Pickles", "Banana Flower Thokku 250g", 120, "🌸"], ["Thokku & Pickles", "Bitter Gourd Thokku 250g", 120, "🥒"], ["Thokku & Pickles", "Garlic Thokku 250g", 120, "🧄"], ["Thokku & Pickles", "Pirandai Thokku 250g", 120, "🌿"], ["Thokku & Pickles", "Lemon Pickle 250g", 120, "🍋"], ["Thokku & Pickles", "Citron Pickle 250g", 120, "🍋"], ["Soaps", "Gram Flour Soap", 100, "🧼"], ["Soaps", "Goat Milk Soap", 100, "🧼"], ["Soaps", "Kuppaimeni Soap", 100, "🧼"], ["Soaps", "Beetroot Soap", 100, "🧼"], ["Soaps", "Tulsi Soap", 100, "🌿"], ["Millet Laddus & Balls", "Peanut Ball", 100, "🥜"], ["Millet Laddus & Balls", "Sesame Ball", 100, "🌾"], ["Millet Laddus & Balls", "Ragi Ball", 100, "🟤"], ["Millet Laddus & Balls", "Foxtail Millet Ball", 100, "🟤"], ["Millet Laddus & Balls", "Pearl Millet Ball", 100, "🟤"], ["Millet Laddus & Balls", "Moong Dal Ball", 100, "🟢"], ["Millet Laddus & Balls", "Roasted Gram Ball", 100, "🟡"], ["Aval Varieties", "Mapillai Samba Aval 250g", 150, "🌾"], ["Aval Varieties", "Karuppu Kavuni Aval 250g", 150, "🌾"], ["Aval Varieties", "Kattuyanam Aval 250g", 150, "🌾"], ["Traditional Rice", "Mapillai Samba Rice 500g", 200, "🌾"], ["Traditional Rice", "Karuppu Kavuni Rice 500g", 200, "🌾"], ["Traditional Rice", "Kattuyanam Rice 500g", 200, "🌾"], ["Traditional Rice", "Bamboo Rice 500g", 200, "🌾"], ["Traditional Rice", "Poongar Rice 500g", 200, "🌾"], ["Traditional Rice", "Red Rice 500g", 200, "🌾"], ["Millets", "Barnyard Millet", 150, "🌾"], ["Millets", "Little Millet", 150, "🌾"], ["Millets", "Foxtail Millet", 150, "🌾"], ["Millets", "Pearl Millet", 150, "🌾"], ["Millets", "Sorghum", 150, "🌾"], ["Herbal Tea & Coffee", "Herbal Tea", 100, "☕"], ["Herbal Tea & Coffee", "Ashwagandha Coffee", 100, "☕"], ["Herbal Tea & Coffee", "Sugar Down Tea", 100, "☕"], ["Herbal Tea & Coffee", "Ulcer Care Coffee", 100, "☕"], ["Herbal Tea & Coffee", "Constipation Relief Coffee", 100, "☕"], ["Herbal Tea & Coffee", "Sleep Support Coffee", 100, "☕"], ["Millet Biscuits", "Pearl Millet Biscuit", 120, "🍪"], ["Millet Biscuits", "Barnyard Millet Biscuit", 120, "🍪"], ["Millet Biscuits", "Avaram Flower Biscuit", 120, "🌼"], ["Millet Biscuits", "Mudakathan Biscuit", 120, "🍪"], ["Country Sugar", "Herbal Country Sugar 500g", 100, "🍯"], ["Country Sugar", "Country Sugar 500g", 100, "🍯"]];
 const DEFAULT_CATS=[...new Set(DEFAULT_PRODUCTS.map(p=>p[0]))];
-function products(){const x=JSON.parse(localStorage.getItem('magizhProducts')||'null');return Array.isArray(x)&&x.length?x:DEFAULT_PRODUCTS}
-function cats(){const x=JSON.parse(localStorage.getItem('magizhCategories')||'null');return Array.isArray(x)&&x.length?x:DEFAULT_CATS}
+function products(){const x=JSON.parse(localStorage.getItem('magizhProducts')||'null');return Array.isArray(x)?x:DEFAULT_PRODUCTS}
+function cats(){const x=JSON.parse(localStorage.getItem('magizhCategories')||'null');return Array.isArray(x)?x:DEFAULT_CATS}
 function settings(){return Object.assign({min:0,courier:50,upi:'magizhcafe@upi',address:'Traditional food, thoughtfully made',instagram:'',facebook:'',whatsapp:''},JSON.parse(localStorage.getItem('magizhSettings')||'{}'))}
 function save(k,v){localStorage.setItem(k,JSON.stringify(v))}
 function esc(x){return String(x??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]))}
@@ -32,23 +32,176 @@ function downloadPayment(id){const o=findOrder(id);if(!o||!o.paymentScreenshot)r
 function renderProducts(){const a=products();document.getElementById('products').innerHTML=`<div class="panel"><h2>Product Add / Edit</h2><div class="grid"><div><label>Category</label><select id="pCat">${cats().map(c=>`<option>${esc(c)}</option>`).join('')}</select></div><div><label>Product Name</label><input id="pName" placeholder="Product name"></div><div><label>Price (₹)</label><input id="pPrice" type="number" min="0" placeholder="100"></div><div><label>Emoji / Placeholder</label><input id="pEmoji" placeholder="🌾"></div></div><label>Product Photos (3)</label><div class="row"><input id="img1" type="file" accept="image/*"><input id="img2" type="file" accept="image/*"><input id="img3" type="file" accept="image/*"></div><button class="primary" onclick="addProduct()" style="margin-top:10px">Add Product</button></div><div class="panel"><input class="search" id="pSearch" placeholder="Search products..." oninput="drawProductList()"><div id="productList"></div></div>`;drawProductList()}
 function drawProductList(){const q=(document.getElementById('pSearch')?.value||'').toLowerCase();const a=products().filter(p=>p[1].toLowerCase().includes(q));document.getElementById('productList').innerHTML=a.map((p,idx)=>`<div class="product"><div class="thumb" style="background-image:url('${p[4]||''}')">${p[4]?'':'🌾'}</div><div><b>${esc(p[1])}</b><br><span class="pill">${esc(p[0])}</span> <b>₹${p[2]}</b><br><button class="secondary" onclick="editProduct(${products().indexOf(p)})">Edit</button> <button class="danger" onclick="deleteProduct(${products().indexOf(p)})">Delete</button></div><div></div></div>`).join('')||'<div class="empty">No products found.</div>'}
 function fileData(id){return new Promise(resolve=>{const f=document.getElementById(id).files[0];if(!f)return resolve('');const r=new FileReader();r.onload=e=>resolve(e.target.result);r.readAsDataURL(f)})}
-async function addProduct(){const name=pName.value.trim();if(!name)return alert('Enter product name.');const a=products();a.push([pCat.value,name,Number(pPrice.value)||0,pEmoji.value||'🌾',await fileData('img1'),await fileData('img2'),await fileData('img3')]);save('magizhProducts',a);alert('Product added.');renderProducts()}
+async function addProduct(){
+  const name=pName.value.trim();
+  if(!name)return alert('Enter product name.');
+
+  const a=products();
+  a.push([
+    pCat.value,
+    name,
+    Number(pPrice.value)||0,
+    pEmoji.value||'🌾',
+    await fileData('img1'),
+    await fileData('img2'),
+    await fileData('img3')
+  ]);
+
+  save('magizhProducts',a);
+  alert('Product added successfully.');
+  renderProducts();
+}
 function openImageManager(i){const p=products()[i];if(!p)return;document.getElementById('imageModal').style.display='block';document.getElementById('imageManagerBody').innerHTML=`<div class="muted">${esc(p[1])}</div><div class="row">${[1,2,3].map(k=>`<div><label>Photo ${k}</label>${p[3+k]?`<img class="preview" src="${p[3+k]}" alt="Photo ${k}"><br><button class="danger" onclick="removePhoto(${i},${k})">Remove Photo ${k}</button>`:'<div class="muted">No photo</div>'}<input id="photoFile${k}" type="file" accept="image/*" style="margin-top:6px"></div>`).join('')}</div><button class="primary" onclick="savePhotos(${i})" style="margin-top:12px">Save Photos</button>`}
 function closeImageManager(){document.getElementById('imageModal').style.display='none'}
 function removePhoto(i,k){const a=products();if(a[i]){a[i][3+k]='';save('magizhProducts',a);openImageManager(i);drawProductList()}}
 async function savePhotos(i){const a=products(),p=a[i];if(!p)return;for(let k=1;k<=3;k++){const f=document.getElementById('photoFile'+k);if(f&&f.files[0]){const r=new FileReader();await new Promise(res=>{r.onload=e=>{p[3+k]=e.target.result;res()};r.readAsDataURL(f.files[0])})}}save('magizhProducts',a);alert('Photos updated.');closeImageManager();drawProductList()}
 function editProduct(i){const a=products(),p=a[i];const name=prompt('Product name',p[1]);if(name===null)return;const price=prompt('Price',p[2]);if(price===null)return;p[1]=name.trim()||p[1];p[2]=Number(price)||0;const c=prompt('Category',p[0]);if(c!==null&&c.trim())p[0]=c.trim();save('magizhProducts',a);renderProducts()}
-function deleteProduct(i){if(!confirm('Delete this product?'))return;const a=products();a.splice(i,1);save('magizhProducts',a);renderProducts()}
+function deleteProduct(i){
+  if(!confirm('Delete this product?'))return;
+
+  const a=products();
+
+  if(i<0 || i>=a.length){
+    alert('Product not found.');
+    return;
+  }
+
+  a.splice(i,1);
+  save('magizhProducts',a);
+  alert('Product deleted successfully.');
+  renderProducts();
+}
 function renderCategories(){const a=cats();document.getElementById('categories').innerHTML=`<div class="panel"><h2>Category Add / Delete</h2><div class="row"><input id="newCat" placeholder="New category name"><button class="primary" onclick="addCat()">Add Category</button></div></div><div class="panel">${a.map(c=>`<div class="product"><div class="pill">${esc(c)}</div><div></div><button class="danger" onclick="deleteCat('${esc(c)}')">Delete</button></div>`).join('')}</div>`}
 function addCat(){const n=newCat.value.trim();if(!n)return;const a=cats();if(a.some(x=>x.toLowerCase()===n.toLowerCase()))return alert('Category already exists.');a.push(n);save('magizhCategories',a);renderCategories()}
 function deleteCat(n){if(!confirm('Delete category '+n+'? Products in this category will remain until you edit or delete them.'))return;const a=cats().filter(x=>x!==n);save('magizhCategories',a);renderCategories()}
-function renderUsers(){const u=JSON.parse(localStorage.getItem('magizhUsers')||'{}');document.getElementById('users').innerHTML=`<div class="panel"><h2>User Coins</h2><div class="muted">Add coins to a customer using their User ID.</div><label>User ID</label><input id="uid" placeholder="B5-10284"><label>Customer Name</label><input id="uname" placeholder="Customer name"><label>Coins to Add</label><input id="ucoins" type="number" min="0" placeholder="500"><button class="primary" onclick="addCoins()" style="margin-top:10px">Add Coins</button></div><div class="panel"><h2>Registered Users</h2>${Object.values(u).map(x=>`<div class="product"><div><b>${esc(x.id)}</b><br>${esc(x.name||'Customer')}</div><div>🪙 <b>${Number(x.coins)||0}</b></div><div></div></div>`).join('')||'<div class="empty">No users yet.</div>'}</div>`}
-function addCoins(){const id=uid.value.trim();if(!id)return alert('Enter User ID.');const u=JSON.parse(localStorage.getItem('magizhUsers')||'{}');if(!u[id])u[id]={id,name:uname.value.trim()||'Customer',phone:'',coins:0};u[id].coins=(Number(u[id].coins)||0)+(Number(ucoins.value)||0);save('magizhUsers',u);localStorage.setItem('magizhCoinWallet',String(u[id].coins));alert('Coins added successfully.');renderUsers()}
+function renderUsers(){
+  const u=JSON.parse(localStorage.getItem('magizhUsers')||'{}');
+
+  document.getElementById('users').innerHTML=
+    `<div class="panel">
+      <h2>User Coins</h2>
+      <div class="muted">Search a registered customer by User ID or Mobile Number.</div>
+
+      <label>User ID / Mobile Number</label>
+      <input id="userSearch" placeholder="MC-123456 or 9876543210">
+
+      <button class="secondary" onclick="searchUserForCoins()" style="margin-top:10px">
+        Search Customer
+      </button>
+
+      <div id="coinUserResult" style="margin-top:12px"></div>
+    </div>
+
+    <div class="panel">
+      <h2>Registered Users</h2>
+      ${Object.values(u).map(x=>`
+        <div class="product">
+          <div>
+            <b>${esc(x.id)}</b><br>
+            ${esc(x.name||'Customer')}<br>
+            <span class="muted">${esc(x.phone||'')}</span>
+          </div>
+          <div>🪙 <b>${Number(x.coins)||0}</b></div>
+          <div></div>
+        </div>
+      `).join('')||'<div class="empty">No users yet.</div>'}
+    </div>`;
+}
+
+function findAdminUser(query){
+  const q=String(query||'').trim().toLowerCase();
+  if(!q)return null;
+
+  const u=JSON.parse(localStorage.getItem('magizhUsers')||'{}');
+
+  for(const [id,user] of Object.entries(u)){
+    if(String(id).toLowerCase()===q) return {id,user};
+    if(String(user.phone||'')===q) return {id,user};
+  }
+
+  return null;
+}
+
+function searchUserForCoins(){
+  const query=document.getElementById('userSearch').value.trim();
+  const result=document.getElementById('coinUserResult');
+
+  if(!query){
+    result.innerHTML='<div class="muted">Enter User ID or Mobile Number.</div>';
+    return;
+  }
+
+  const found=findAdminUser(query);
+
+  if(!found){
+    result.innerHTML=
+      '<div class="empty">No registered customer found for this User ID / Mobile Number.</div>';
+    return;
+  }
+
+  const u=found.user;
+
+  result.innerHTML=`
+    <div class="panel" style="margin:0;background:#fffdf7">
+      <b>${esc(u.name||'Customer')}</b><br>
+      User ID: <b>${esc(found.id)}</b><br>
+      Mobile: <b>${esc(u.phone||'')}</b><br>
+      Account: <b>${esc(u.memberType||'Normal')}</b><br>
+      Current Coins: 🪙 <b>${Number(u.coins)||0}</b>
+
+      <label style="margin-top:12px">Coins to Add</label>
+      <input id="ucoins" type="number" min="0" value="0">
+
+      <button class="primary" onclick="addCoinsToFoundUser('${esc(found.id)}')" style="margin-top:10px">
+        Add Coins
+      </button>
+    </div>`;
+}
+
+function addCoinsToFoundUser(id){
+  const amount=Math.max(0,Math.floor(Number(document.getElementById('ucoins').value)||0));
+
+  if(amount<=0){
+    alert('Enter coins to add.');
+    return;
+  }
+
+  const u=JSON.parse(localStorage.getItem('magizhUsers')||'{}');
+
+  if(!u[id]){
+    alert('Customer not found.');
+    return;
+  }
+
+  u[id].coins=(Number(u[id].coins)||0)+amount;
+
+  localStorage.setItem('magizhUsers',JSON.stringify(u));
+
+  if(sessionStorage.getItem('magizhCurrentUserId')===id){
+    localStorage.setItem('magizhCoinWallet',String(u[id].coins));
+  }
+
+  alert('Coins added successfully.');
+  renderUsers();
+  setTimeout(()=>{
+    const search=document.getElementById('userSearch');
+    if(search){
+      search.value=id;
+      searchUserForCoins();
+    }
+  },0);
+}
+
 function renderSettings(){const s=settings();document.getElementById('settings').innerHTML=`<div class="panel"><h2>Store & Payment Settings</h2><div class="grid"><div><label>Minimum Order Value (₹)</label><input id="minVal" type="number" min="0" value="${s.min}"><div class="muted">Set 0 for no minimum order.</div></div><div><label>Courier Charge (₹)</label><input id="courierVal" type="number" min="0" value="${s.courier}"></div><div><label>Shop UPI ID</label><input id="upiVal" value="${esc(s.upi)}"></div><div><label>Delivery Estimate</label><input value="7–10 days" disabled></div></div><button class="primary" onclick="saveSettings()">Save Settings</button></div>`}
 function saveSettings(){const s=settings();s.min=Number(minVal.value)||0;s.courier=Number(courierVal.value)||0;s.upi=upiVal.value.trim();save('magizhSettings',s);alert('Settings saved.')}
 function renderSocial(){const s=settings();document.getElementById('social').innerHTML=`<div class="panel"><h2>Social & Contact</h2><label>Address</label><textarea id="addressVal" rows="3">${esc(s.address)}</textarea><label>Instagram URL</label><input id="instagramVal" value="${esc(s.instagram)}"><label>Facebook URL</label><input id="facebookVal" value="${esc(s.facebook)}"><label>WhatsApp Link</label><input id="whatsappVal" value="${esc(s.whatsapp)}"><label>Phone Number</label><input id="phoneVal" value="${esc(s.phone||'')}"><label>Business Hours</label><input id="hoursVal" value="${esc(s.hours||'')}"><button class="primary" onclick="saveSocial()" style="margin-top:10px">Save Contact & Social</button></div>`}
 function saveSocial(){const s=settings();s.address=addressVal.value.trim();s.instagram=instagramVal.value.trim();s.facebook=facebookVal.value.trim();s.whatsapp=whatsappVal.value.trim();s.phone=phoneVal.value.trim();s.hours=hoursVal.value.trim();save('magizhSettings',s);alert('Contact & social details saved.')}
 function resetDemo(){if(!confirm('Reset demo data?'))return;['magizhProducts','magizhCategories','magizhSettings','magizhOrders','magizhUsers','magizhCoinWallet'].forEach(k=>localStorage.removeItem(k));render('orders');}
 render('orders');
+window.addEventListener('magizhServerSync',function(){
+  const active=document.querySelector('.tab.active');
+  const id=active && active.getAttribute('onclick')?.match(/show\('([^']+)'/)?.[1] || 'orders';
+  render(id);
+});
 </script><div class="fullScreenModal" id="imageViewer" onclick="closeImageViewer(event)"><button class="closeFull" onclick="closeImageViewer(event)">×</button><img id="fullPaymentImage" alt="Payment screenshot"></div><style>#adminLoginGate{position:fixed;inset:0;background:#f7f1e8;z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px}#adminLoginGate .box{width:min(390px,100%);background:#fff;border-radius:22px;padding:24px}#adminLoginGate input,#adminLoginGate button{width:100%;box-sizing:border-box;padding:13px;border-radius:12px;margin:7px 0}#adminLoginGate button{border:0;background:#e67e22;color:#fff;font-weight:700}</style><div id="adminLoginGate"><div class="box"><h2>Admin Login</h2><input id="adminUser" placeholder="Username"><input id="adminPass" type="password" placeholder="Password"><button onclick="adminSignIn()">Login</button></div></div><script>function adminSignIn(){if(document.getElementById('adminUser').value==='admin'&&document.getElementById('adminPass').value==='123456'){sessionStorage.setItem('magizhAdminAuth','1');document.getElementById('adminLoginGate').style.display='none'}else alert('Invalid username or password.')}document.addEventListener('DOMContentLoaded',()=>{if(sessionStorage.getItem('magizhAdminAuth')==='1')document.getElementById('adminLoginGate').style.display='none'});</script><script src="/server-sync.js"></script>
 </body></html>

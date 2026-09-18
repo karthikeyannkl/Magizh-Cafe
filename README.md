@@ -1,26 +1,41 @@
-# Magizh Cafe - Final Temporary Test Upload
+# Magizh Cafe - FINAL Test Upload
 
-Upload these files directly to the ROOT of the GitHub repository:
+Upload all files directly into the GitHub repository ROOT.
 
-- package.json
-- server.js
-- index.html
+Files:
+- README.md
 - admin.html
+- index.html
+- package.json
 - server-sync.js
+- server.js
 
-No folder is required.
+No folders are required.
 
 Render:
+Root Directory: blank
 Build Command: npm install
 Start Command: node server.js
-Root Directory: blank
-DATA_TTL_DAYS: 30
+Environment Variable:
+DATA_TTL_DAYS=30
 
-For a 15-day test, set DATA_TTL_DAYS=15.
+15-day test:
+DATA_TTL_DAYS=15
 
 URLs:
 Customer: /
 Admin: /admin
 Health: /api/health
 
-This is a temporary test server. It uses a JSON file for test data. Final production should use the real database/server.
+Final test corrections included:
+1. New User registration starts with 0 Coins.
+2. New User does not show the coin/welcome card when balance is 0.
+3. B5 users keep their existing coin balance.
+4. Admin User Coins can search by User ID OR Mobile Number and shows customer name/details.
+5. Admin Product Delete persists and removes the product from customer view after sync.
+6. Admin Product Add persists and appears on customer view after sync.
+7. Payment screenshot confirmation uses both the stored screenshot state and the actual selected file as a fallback, preventing the false "Please upload screenshot" message.
+8. Admin/customer pages refresh when server data is pulled.
+9. CommonJS Node server; no "type": "module" conflict.
+
+This is still a temporary test server. Final production should use the real database/server and secure authentication.

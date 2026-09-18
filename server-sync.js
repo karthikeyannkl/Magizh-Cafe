@@ -23,5 +23,5 @@
   }
   window.magizhServerSync={pull,push};
   pull();
-  timer=setInterval(pull,15000);
+  timer=setInterval(pull,5000);
 })();
