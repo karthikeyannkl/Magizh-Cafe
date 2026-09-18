@@ -1,7 +1,9 @@
 {
-  "name": "magizh-cafe-test-server",
-  "version": "1.0.0",
+  "name": "magizh-cafe-test-server-v2",
+  "version": "2.0.0",
   "private": true,
   "type": "module",
-  "scripts": {"start":"node server.js"}
+  "scripts": {
+    "start": "node server.js"
+  }
 }

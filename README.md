@@ -1,27 +1,66 @@
-# Magizh Cafe – Temporary GitHub + Render Test Server
+# Magizh Cafe - Temporary GitHub + Render Test Server V2
 
-This package keeps the approved Magizh Cafe user/admin HTML design and adds a small temporary server-side storage layer for testing.
+## Upload structure
 
-## Storage period
-Default: **30 days**. Set `DATA_TTL_DAYS=15` in Render if you want 15 days instead.
+Upload the CONTENTS of this folder to the ROOT of the GitHub repository.
 
-The server automatically starts a fresh test store after the TTL expires.
+Do not upload the outer folder itself as the repository root.
 
-## Run locally
-```bash
-npm install
-npm start
-```
-Open:
-- `/` – customer page
-- `/admin` – admin page
-- `/api/health` – health check
+Required root files:
+- package.json
+- server.js
+- public/index.html
+- public/admin.html
+- public/server-sync.js
+- data/
 
 ## Render
-Use:
-- Build Command: `npm install`
-- Start Command: `npm start`
-- Environment Variable: `DATA_TTL_DAYS=30` (or `15`)
 
-## Important test note
-This is a temporary test storage layer. It writes JSON to the server filesystem. On a Render service without persistent storage, a redeploy/restart can remove that file. This is intentional for the temporary test phase. When the main B5 server is ready, this layer can be replaced by the real central database/API without changing the approved UI.
+Runtime: Node
+
+Build Command:
+npm install
+
+Start Command:
+npm start
+
+Environment Variable:
+DATA_TTL_DAYS=30
+
+For a 15-day test:
+DATA_TTL_DAYS=15
+
+## URLs
+
+Customer:
+/
+
+Admin:
+ /admin
+
+Health check:
+ /api/health
+
+Server state:
+ /api/state
+
+Reset temporary test data:
+ POST /api/reset
+
+## Test storage
+
+This version uses a temporary JSON file under data/test-data.json.
+The retention timer is refreshed whenever data is written.
+
+This is for testing only. Render's filesystem may be ephemeral without persistent storage.
+For the final production system, move users, coins, products, orders, screenshots and settings to the real database/server.
+
+## Admin demo login
+
+Username: admin
+Password: 123456
+
+## Important
+
+This V2 does not change the approved customer/admin visual design.
+It mainly fixes the server packaging/routing and improves error logging.
