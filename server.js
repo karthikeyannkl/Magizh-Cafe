@@ -30,6 +30,7 @@ const DEFAULT_STATE = {
   magizhB5: {},
   magizhCoinWallet: "0",
   magizhAdminPassword: null,
+  magizhLevelTrackingV1: {},
   magizhCurrentUser: null,
   magizhCurrentUserId: "GUEST"
 };
