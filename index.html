@@ -190,7 +190,21 @@ body{margin:0 auto}
 <script>
 const PRODUCTS=[["Powders", "Garlic Powder 250g", 100, "🌶️"], ["Powders", "Dal Powder 250g", 100, "🌾"], ["Powders", "Sesame Powder 250g", 100, "🌾"], ["Powders", "Chutney Powder 250g", 100, "🌿"], ["Powders", "Peanut Powder 250g", 100, "🥜"], ["Powders", "Vallarai Powder 250g", 100, "🌿"], ["Powders", "Curry Leaf Powder 250g", 100, "🌿"], ["Powders", "Moringa Powder 250g", 100, "🌿"], ["Powders", "Horse Gram Powder 250g", 100, "🌾"], ["Thokku & Pickles", "Curry Leaf Thokku 250g", 120, "🌿"], ["Thokku & Pickles", "Coriander Thokku 250g", 120, "🌿"], ["Thokku & Pickles", "Banana Flower Thokku 250g", 120, "🌸"], ["Thokku & Pickles", "Bitter Gourd Thokku 250g", 120, "🥒"], ["Thokku & Pickles", "Garlic Thokku 250g", 120, "🧄"], ["Thokku & Pickles", "Pirandai Thokku 250g", 120, "🌿"], ["Thokku & Pickles", "Lemon Pickle 250g", 120, "🍋"], ["Thokku & Pickles", "Citron Pickle 250g", 120, "🍋"], ["Soaps", "Gram Flour Soap", 100, "🧼"], ["Soaps", "Goat Milk Soap", 100, "🧼"], ["Soaps", "Kuppaimeni Soap", 100, "🧼"], ["Soaps", "Beetroot Soap", 100, "🧼"], ["Soaps", "Tulsi Soap", 100, "🌿"], ["Millet Laddus & Balls", "Peanut Ball", 100, "🥜"], ["Millet Laddus & Balls", "Sesame Ball", 100, "🌾"], ["Millet Laddus & Balls", "Ragi Ball", 100, "🟤"], ["Millet Laddus & Balls", "Foxtail Millet Ball", 100, "🟤"], ["Millet Laddus & Balls", "Pearl Millet Ball", 100, "🟤"], ["Millet Laddus & Balls", "Moong Dal Ball", 100, "🟢"], ["Millet Laddus & Balls", "Roasted Gram Ball", 100, "🟡"], ["Aval Varieties", "Mapillai Samba Aval 250g", 150, "🌾"], ["Aval Varieties", "Karuppu Kavuni Aval 250g", 150, "🌾"], ["Aval Varieties", "Kattuyanam Aval 250g", 150, "🌾"], ["Traditional Rice", "Mapillai Samba Rice 500g", 200, "🌾"], ["Traditional Rice", "Karuppu Kavuni Rice 500g", 200, "🌾"], ["Traditional Rice", "Kattuyanam Rice 500g", 200, "🌾"], ["Traditional Rice", "Bamboo Rice 500g", 200, "🌾"], ["Traditional Rice", "Poongar Rice 500g", 200, "🌾"], ["Traditional Rice", "Red Rice 500g", 200, "🌾"], ["Millets", "Barnyard Millet", 150, "🌾"], ["Millets", "Little Millet", 150, "🌾"], ["Millets", "Foxtail Millet", 150, "🌾"], ["Millets", "Pearl Millet", 150, "🌾"], ["Millets", "Sorghum", 150, "🌾"], ["Herbal Tea & Coffee", "Herbal Tea", 100, "☕"], ["Herbal Tea & Coffee", "Ashwagandha Coffee", 100, "☕"], ["Herbal Tea & Coffee", "Sugar Down Tea", 100, "☕"], ["Herbal Tea & Coffee", "Ulcer Care Coffee", 100, "☕"], ["Herbal Tea & Coffee", "Constipation Relief Coffee", 100, "☕"], ["Herbal Tea & Coffee", "Sleep Support Coffee", 100, "☕"], ["Millet Biscuits", "Pearl Millet Biscuit", 120, "🍪"], ["Millet Biscuits", "Barnyard Millet Biscuit", 120, "🍪"], ["Millet Biscuits", "Avaram Flower Biscuit", 120, "🌼"], ["Millet Biscuits", "Mudakathan Biscuit", 120, "🍪"], ["Country Sugar", "Herbal Country Sugar 500g", 100, "🍯"], ["Country Sugar", "Country Sugar 500g", 100, "🍯"]];
 let selectedCategory='All',cart=[],current=-1;
-function loadCart(){try{const a=JSON.parse(localStorage.getItem('magizhCart')||'[]');cart=Array.isArray(a)?a.filter(x=>x&&x.key&&Number(x.q)>0).map(x=>({key:String(x.key),q:Math.max(1,Math.floor(Number(x.q)||1))})):[]}catch(e){cart=[]}}
+function loadCart(){
+  try{
+    const a=JSON.parse(localStorage.getItem('magizhCart')||'[]');
+    if(!Array.isArray(a)){cart=[];return}
+    const catalog=getCatalog();
+    cart=a.map(x=>{
+      if(!x||Number(x.q)<=0)return null;
+      let key=x.key;
+      if(!key && Number.isInteger(Number(x.i)) && catalog[Number(x.i)]) key=cartProductKey(catalog[Number(x.i)]);
+      if(!key)return null;
+      return {key:String(key),q:Math.max(1,Math.floor(Number(x.q)||1))};
+    }).filter(Boolean);
+    persistCart();
+  }catch(e){cart=[]}
+}
 function persistCart(){try{localStorage.setItem('magizhCart',JSON.stringify(cart))}catch(e){}}
 
 function productKeyFromProduct(p){return String(p?.[0]||'')+'||'+String(p?.[1]||'')}
@@ -272,6 +286,7 @@ function buyCurrent(){
   showStep(1);
   document.getElementById('cartModal').style.display='flex';
 }
+function changeQtySafe(key,d){try{changeQty(key,d)}catch(e){console.error(e)}}
 function changeQty(key,d){
   const x=cart.find(a=>a.key===String(key)); if(!x)return;
   x.q=Math.max(0,Math.floor(Number(x.q)||0)+Number(d||0));
@@ -294,13 +309,40 @@ function openCart(){
 function closeCart(){cartModal.style.display='none';updateAllCoinDisplays(getWallet())}
 function openCartFromHeader(){openCart()}
 
+function closeMyOrders(){
+  const m=document.getElementById('ordersModal');
+  if(m)m.style.display='none';
+}
+function openMyOrders(){
+  const user=getLoggedUser();
+  if(!user){openLogin();return;}
+  const list=document.getElementById('myOrdersList');
+  if(!list)return;
+  let orders=[];
+  try{orders=JSON.parse(localStorage.getItem('magizhOrders')||'[]');}catch(e){orders=[]}
+  const uid=String(user.id||sessionStorage.getItem('magizhCurrentUserId')||'');
+  const phone=String(user.phone||'');
+  const mine=orders.filter(o=>String(o.userId||'')===uid || (phone && String(o.phone||'')===phone));
+  if(!mine.length){
+    list.innerHTML='<div class="emptyOrders">No orders found yet.</div>';
+  }else{
+    list.innerHTML=mine.slice().reverse().map(o=>{
+      const items=Array.isArray(o.items)?o.items.map(i=>String(i.name||'Product')+' × '+(Number(i.qty)||1)).join(', '):'Order items';
+      const status=String(o.status||'Order Placed');
+      return '<div class="orderCard"><div style="display:flex;justify-content:space-between;gap:8px"><b>'+esc(o.id||'Order')+'</b><span class="status">'+esc(status)+'</span></div><div style="margin-top:6px">'+esc(o.date||'')+'</div><div style="margin-top:6px">'+esc(items)+'</div><div style="margin-top:6px"><b>Total: ₹'+(Number(o.total)||0)+'</b> · Coins used: ₹'+(Number(o.coinUsed)||0)+'</div><div>Payment: '+esc(o.paymentStatus||'Pending')+'</div><div>Delivery: '+esc(o.delivery||'7–10 days')+'</div></div>';
+    }).join('');
+  }
+  const m=document.getElementById('ordersModal');
+  if(m)m.style.display='flex';
+}
+
 function renderCart(){
   const min=getMinOrder(); minDisplay.textContent=min>0?'₹'+min.toLocaleString('en-IN'):'No minimum';
   if(!cart.length){cartItems.innerHTML='<p>Your cart is empty.</p>';bill1.innerHTML='';return}
   cartItems.innerHTML=cart.map(x=>{
     const i=findCatalogIndexByKey(x.key),p=i>=0?getCatalog()[i]:null; if(!p)return '';
     const key=JSON.stringify(x.key);
-    return '<div class="cartitem"><div class="cartrow"><div><b>'+p[1]+'</b><br><span style="font-size:10px">₹'+p[2]+' each</span></div><b>₹'+(Number(p[2])||0)*x.q+'</b></div><div class="qty"><button type="button" onclick="changeQty('+key+',-1)">−</button><b>'+x.q+'</b><button type="button" onclick="changeQty('+key+',1)">+</button><span style="font-size:9px;color:#786b5e">Quantity</span></div></div>';
+    return '<div class="cartitem"><div class="cartrow"><div><b>'+p[1]+'</b><br><span style="font-size:10px">₹'+p[2]+' each</span></div><b>₹'+(Number(p[2])||0)*x.q+'</b></div><div class="qty"><button type="button" onclick="changeQtySafe('+key+',-1)">−</button><b>'+x.q+'</b><button type="button" onclick="changeQtySafe('+key+',1)">+</button><span style="font-size:9px;color:#786b5e">Quantity</span></div></div>';
   }).join('');
   const sub=getProductTotal(); const courier=getCourier();
   bill1.innerHTML='<div style="padding-top:12px;font-size:11px;line-height:1.8"><div style="display:flex;justify-content:space-between">Subtotal <b>₹'+sub+'</b></div><div style="display:flex;justify-content:space-between">Courier <b>₹'+courier+'</b></div><div style="display:flex;justify-content:space-between;font-size:15px;border-top:1px solid #eadfce;margin-top:5px;padding-top:6px">Total <b>₹'+(sub+courier)+'</b></div></div>';
