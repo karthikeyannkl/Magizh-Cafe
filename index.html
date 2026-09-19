@@ -287,6 +287,7 @@ function buyCurrent(){
   document.getElementById('cartModal').style.display='flex';
 }
 function changeQtySafe(key,d){try{changeQty(key,d)}catch(e){console.error(e)}}
+function esc(v){return String(v??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\"/g,'&quot;').replace(/'/g,'&#39;')}
 function changeQty(key,d){
   const x=cart.find(a=>a.key===String(key)); if(!x)return;
   x.q=Math.max(0,Math.floor(Number(x.q)||0)+Number(d||0));
@@ -341,8 +342,8 @@ function renderCart(){
   if(!cart.length){cartItems.innerHTML='<p>Your cart is empty.</p>';bill1.innerHTML='';return}
   cartItems.innerHTML=cart.map(x=>{
     const i=findCatalogIndexByKey(x.key),p=i>=0?getCatalog()[i]:null; if(!p)return '';
-    const key=JSON.stringify(x.key);
-    return '<div class="cartitem"><div class="cartrow"><div><b>'+p[1]+'</b><br><span style="font-size:10px">₹'+p[2]+' each</span></div><b>₹'+(Number(p[2])||0)*x.q+'</b></div><div class="qty"><button type="button" onclick="changeQtySafe('+key+',-1)">−</button><b>'+x.q+'</b><button type="button" onclick="changeQtySafe('+key+',1)">+</button><span style="font-size:9px;color:#786b5e">Quantity</span></div></div>';
+    const key=encodeURIComponent(String(x.key));
+    return '<div class="cartitem"><div class="cartrow"><div><b>'+esc(p[1])+'</b><br><span style="font-size:10px">₹'+p[2]+' each</span></div><b>₹'+(Number(p[2])||0)*x.q+'</b></div><div class="qty"><button type="button" data-cart-key="'+key+'" onclick="changeQtySafe(decodeURIComponent(this.dataset.cartKey),-1)">−</button><b>'+x.q+'</b><button type="button" data-cart-key="'+key+'" onclick="changeQtySafe(decodeURIComponent(this.dataset.cartKey),1)">+</button><span style="font-size:9px;color:#786b5e">Quantity</span></div></div>';
   }).join('');
   const sub=getProductTotal(); const courier=getCourier();
   bill1.innerHTML='<div style="padding-top:12px;font-size:11px;line-height:1.8"><div style="display:flex;justify-content:space-between">Subtotal <b>₹'+sub+'</b></div><div style="display:flex;justify-content:space-between">Courier <b>₹'+courier+'</b></div><div style="display:flex;justify-content:space-between;font-size:15px;border-top:1px solid #eadfce;margin-top:5px;padding-top:6px">Total <b>₹'+(sub+courier)+'</b></div></div>';
