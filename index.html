@@ -258,9 +258,19 @@ function addCurrent(){
 function buyCurrent(){
   const user=getLoggedUser();
   if(!user){closeProduct();openLogin();return;}
-  if(current<0)return; const p=getCatalog()[current]; if(!p)return; const key=cartProductKey(p);
-  const x=cart.find(a=>a.key===key); if(x)x.q++; else cart.push({key,q:1});
-  persistCart(); closeProduct(); renderCart(); showStep(1); cartModal.style.display='flex';
+  if(current<0)return;
+  const p=getCatalog()[current];
+  if(!p)return;
+  const key=cartProductKey(p);
+  const x=cart.find(a=>a.key===key);
+  if(x) x.q=Math.max(1,Math.floor(Number(x.q)||1));
+  else cart.push({key,q:1});
+  persistCart();
+  updateCart();
+  closeProduct();
+  renderCart();
+  showStep(1);
+  document.getElementById('cartModal').style.display='flex';
 }
 function changeQty(key,d){
   const x=cart.find(a=>a.key===String(key)); if(!x)return;
@@ -274,7 +284,13 @@ function updateCart(){
   const cc=document.getElementById('cartCount'),ct=document.getElementById('cartTotal');
   if(cc)cc.textContent=count; if(ct)ct.textContent=total;
 }
-function openCart(){couponUsed=false;reservedCoins=0;paymentScreenshotData='';try{sessionStorage.removeItem('magizhPaymentScreenshot')}catch(e){}renderCart();showStep(1);cartModal.style.display='flex'}
+function openCart(){
+  if(!getLoggedUser()){openLogin();return;}
+  loadCart();
+  renderCart();
+  showStep(1);
+  document.getElementById('cartModal').style.display='flex';
+}
 function closeCart(){cartModal.style.display='none';updateAllCoinDisplays(getWallet())}
 function renderCart(){
   const min=getMinOrder(); minDisplay.textContent=min>0?'₹'+min.toLocaleString('en-IN'):'No minimum';
@@ -296,7 +312,7 @@ function showStep(n){
   checkoutTitle.textContent=n===1?'Your Cart':n===2?'Delivery Address':n===3?'Confirm Order':'Payment';
 }
 function goAddress(){
-  const sub=cart.reduce((s,x)=>s+getCatalog()[x.i][2]*x.q,0),min=getMinOrder();
+  const sub=getProductTotal(),min=getMinOrder();
   if(!cart.length){alert('Please add a product first.');return}
   if(min>0 && sub<min){alert('Minimum Bill Value is ₹'+min.toLocaleString('en-IN')+'. Please add more products.');return}
   showStep(2);
@@ -304,8 +320,8 @@ function goAddress(){
 function goConfirm(){
   const n=cname.value.trim(),ph=phone.value.trim(),pin=pincode.value.trim(),ad=addr.value.trim();
   if(!n||!ph||!pin||!ad){alert('Please enter your complete delivery address.');return}
-  const sub=cart.reduce((s,x)=>s+getCatalog()[x.i][2]*x.q,0);
-  confirmBox.innerHTML='<b>Order Summary</b><br>'+cart.map(x=>getCatalog()[x.i][1]+' × '+x.q).join('<br>')+
+  const sub=getProductTotal();
+  confirmBox.innerHTML='<b>Order Summary</b><br>'+cart.map(x=>{const i=findCatalogIndexByKey(x.key);const p=i>=0?getCatalog()[i]:null;return p?p[1]+' × '+x.q:''}).filter(Boolean).join('<br>')+
     '<hr style="border:0;border-top:1px solid #d5e0c6"><b>Subtotal: ₹'+sub+
     '</b><br><b>Courier: ₹<span id="courierDisplay3">50</span></b><br><b>Grand Total: ₹'+(sub+50)+
     '</b><br><br><b>Deliver To</b><br>'+n+'<br>'+ph+'<br>'+ad+'<br>'+pin;
@@ -720,7 +736,10 @@ function logoutCustomer(){
 <script>
 document.addEventListener('DOMContentLoaded',function(){
   syncCustomerHeader();
-  
+  const vc=document.getElementById('viewCartTopBtn');
+  const mo=document.getElementById('ordersTopBtn');
+  if(vc){vc.onclick=function(e){e.preventDefault();e.stopPropagation();openCart();return false;};}
+  if(mo){mo.onclick=function(e){e.preventDefault();e.stopPropagation();openMyOrders();return false;};}
 });
 </script>
 
