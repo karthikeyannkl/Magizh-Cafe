@@ -29,6 +29,7 @@ const DEFAULT_STATE = {
   magizhSettings: {},
   magizhB5: {},
   magizhCoinWallet: "0",
+  magizhAdminPassword: null,
   magizhCurrentUser: null,
   magizhCurrentUserId: "GUEST"
 };

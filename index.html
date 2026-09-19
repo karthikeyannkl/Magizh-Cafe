@@ -190,10 +190,13 @@ body{margin:0 auto}
 <script>
 const PRODUCTS=[["Powders", "Garlic Powder 250g", 100, "🌶️"], ["Powders", "Dal Powder 250g", 100, "🌾"], ["Powders", "Sesame Powder 250g", 100, "🌾"], ["Powders", "Chutney Powder 250g", 100, "🌿"], ["Powders", "Peanut Powder 250g", 100, "🥜"], ["Powders", "Vallarai Powder 250g", 100, "🌿"], ["Powders", "Curry Leaf Powder 250g", 100, "🌿"], ["Powders", "Moringa Powder 250g", 100, "🌿"], ["Powders", "Horse Gram Powder 250g", 100, "🌾"], ["Thokku & Pickles", "Curry Leaf Thokku 250g", 120, "🌿"], ["Thokku & Pickles", "Coriander Thokku 250g", 120, "🌿"], ["Thokku & Pickles", "Banana Flower Thokku 250g", 120, "🌸"], ["Thokku & Pickles", "Bitter Gourd Thokku 250g", 120, "🥒"], ["Thokku & Pickles", "Garlic Thokku 250g", 120, "🧄"], ["Thokku & Pickles", "Pirandai Thokku 250g", 120, "🌿"], ["Thokku & Pickles", "Lemon Pickle 250g", 120, "🍋"], ["Thokku & Pickles", "Citron Pickle 250g", 120, "🍋"], ["Soaps", "Gram Flour Soap", 100, "🧼"], ["Soaps", "Goat Milk Soap", 100, "🧼"], ["Soaps", "Kuppaimeni Soap", 100, "🧼"], ["Soaps", "Beetroot Soap", 100, "🧼"], ["Soaps", "Tulsi Soap", 100, "🌿"], ["Millet Laddus & Balls", "Peanut Ball", 100, "🥜"], ["Millet Laddus & Balls", "Sesame Ball", 100, "🌾"], ["Millet Laddus & Balls", "Ragi Ball", 100, "🟤"], ["Millet Laddus & Balls", "Foxtail Millet Ball", 100, "🟤"], ["Millet Laddus & Balls", "Pearl Millet Ball", 100, "🟤"], ["Millet Laddus & Balls", "Moong Dal Ball", 100, "🟢"], ["Millet Laddus & Balls", "Roasted Gram Ball", 100, "🟡"], ["Aval Varieties", "Mapillai Samba Aval 250g", 150, "🌾"], ["Aval Varieties", "Karuppu Kavuni Aval 250g", 150, "🌾"], ["Aval Varieties", "Kattuyanam Aval 250g", 150, "🌾"], ["Traditional Rice", "Mapillai Samba Rice 500g", 200, "🌾"], ["Traditional Rice", "Karuppu Kavuni Rice 500g", 200, "🌾"], ["Traditional Rice", "Kattuyanam Rice 500g", 200, "🌾"], ["Traditional Rice", "Bamboo Rice 500g", 200, "🌾"], ["Traditional Rice", "Poongar Rice 500g", 200, "🌾"], ["Traditional Rice", "Red Rice 500g", 200, "🌾"], ["Millets", "Barnyard Millet", 150, "🌾"], ["Millets", "Little Millet", 150, "🌾"], ["Millets", "Foxtail Millet", 150, "🌾"], ["Millets", "Pearl Millet", 150, "🌾"], ["Millets", "Sorghum", 150, "🌾"], ["Herbal Tea & Coffee", "Herbal Tea", 100, "☕"], ["Herbal Tea & Coffee", "Ashwagandha Coffee", 100, "☕"], ["Herbal Tea & Coffee", "Sugar Down Tea", 100, "☕"], ["Herbal Tea & Coffee", "Ulcer Care Coffee", 100, "☕"], ["Herbal Tea & Coffee", "Constipation Relief Coffee", 100, "☕"], ["Herbal Tea & Coffee", "Sleep Support Coffee", 100, "☕"], ["Millet Biscuits", "Pearl Millet Biscuit", 120, "🍪"], ["Millet Biscuits", "Barnyard Millet Biscuit", 120, "🍪"], ["Millet Biscuits", "Avaram Flower Biscuit", 120, "🌼"], ["Millet Biscuits", "Mudakathan Biscuit", 120, "🍪"], ["Country Sugar", "Herbal Country Sugar 500g", 100, "🍯"], ["Country Sugar", "Country Sugar 500g", 100, "🍯"]];
 let selectedCategory='All',cart=[],current=-1;
+function loadCart(){try{const a=JSON.parse(localStorage.getItem('magizhCart')||'[]');cart=Array.isArray(a)?a.filter(x=>x&&x.key&&Number(x.q)>0).map(x=>({key:String(x.key),q:Math.max(1,Math.floor(Number(x.q)||1))})):[]}catch(e){cart=[]}}
+function persistCart(){try{localStorage.setItem('magizhCart',JSON.stringify(cart))}catch(e){}}
+
 function productKeyFromProduct(p){return String(p?.[0]||'')+'||'+String(p?.[1]||'')}
 function cartProductKey(p){return productKeyFromProduct(p)}
 function findCatalogIndexByKey(key){const a=getCatalog();return a.findIndex(p=>cartProductKey(p)===String(key))}
-document.addEventListener('DOMContentLoaded',()=>{renderCategories();renderProducts();updateAllCoinDisplays();});
+document.addEventListener('DOMContentLoaded',()=>{loadCart();renderCategories();renderProducts();updateCart();updateAllCoinDisplays();syncCustomerHeader();});
 function getSettings(){return JSON.parse(localStorage.getItem('magizhSettings')||'{}')}
 function getMinOrder(){const s=getSettings();return(s&&Number.isFinite(Number(s.min))&&Number(s.min)>=0)?Number(s.min):0}
 function getCourier(){const s=getSettings();return(s&&Number.isFinite(Number(s.courier))&&Number(s.courier)>=0)?Number(s.courier):50}
@@ -241,25 +244,29 @@ function openProduct(i){
   productModal.style.display='flex'; updateAllCoinDisplays();
 }
 function closeProduct(){productModal.style.display='none'}
+function showCartToast(message,withCart=false){
+  let t=document.getElementById('cartToast');
+  if(!t){t=document.createElement('div');t.id='cartToast';t.style.cssText='position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:9999;background:#3f5f32;color:#fff;padding:9px 11px;border-radius:22px;font-size:11px;font-weight:700;box-shadow:0 6px 20px #0003;transition:opacity .2s;display:flex;align-items:center;gap:8px;white-space:nowrap';document.body.appendChild(t)}
+  t.innerHTML='<span>'+message+'</span>'+(withCart?'<button type=\"button\" style=\"border:1px solid #fff;background:#fff;color:#3f5f32;border-radius:16px;padding:5px 9px;font-size:9px;font-weight:700\" onclick=\"openCart();this.parentElement.style.opacity=\'0\'\">View Cart</button>':'');
+  t.style.opacity='1';clearTimeout(window.__cartToastTimer);window.__cartToastTimer=setTimeout(()=>{t.style.opacity='0'},2200);
+}
 function addCurrent(){
   if(current<0)return; const p=getCatalog()[current]; if(!p)return; const key=cartProductKey(p);
   const x=cart.find(a=>a.key===key); if(x)x.q++; else cart.push({key,q:1});
-  closeProduct(); updateCart(); showCartToast('Added to cart ✓');
-}
-function showCartToast(message){
-  let t=document.getElementById('cartToast');
-  if(!t){t=document.createElement('div');t.id='cartToast';t.style.cssText='position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:9999;background:#3f5f32;color:#fff;padding:10px 15px;border-radius:22px;font-size:11px;font-weight:700;box-shadow:0 6px 20px #0003;transition:opacity .2s';document.body.appendChild(t)}
-  t.textContent=message;t.style.opacity='1';clearTimeout(window.__cartToastTimer);window.__cartToastTimer=setTimeout(()=>{t.style.opacity='0'},1800);
+  persistCart(); closeProduct(); updateCart(); showCartToast('Added to Cart ✓',true);
 }
 function buyCurrent(){
+  const user=getLoggedUser();
+  if(!user){closeProduct();openLogin();return;}
   if(current<0)return; const p=getCatalog()[current]; if(!p)return; const key=cartProductKey(p);
   const x=cart.find(a=>a.key===key); if(x)x.q++; else cart.push({key,q:1});
-  closeProduct(); renderCart(); showStep(2); cartModal.style.display='flex';
+  persistCart(); closeProduct(); renderCart(); showStep(1); cartModal.style.display='flex';
 }
 function changeQty(key,d){
   const x=cart.find(a=>a.key===String(key)); if(!x)return;
-  x.q+=d; if(x.q<=0)cart=cart.filter(a=>a.key!==String(key));
-  updateCart(); renderCart();
+  x.q=Math.max(0,Math.floor(Number(x.q)||0)+Number(d||0));
+  if(x.q<=0)cart=cart.filter(a=>a.key!==String(key));
+  persistCart(); updateCart(); renderCart();
 }
 function updateCart(){
   const total=cart.reduce((s,x)=>{const i=findCatalogIndexByKey(x.key);const p=i>=0?getCatalog()[i]:null;return s+(p?(Number(p[2])||0)*x.q:0)},0);
@@ -267,7 +274,7 @@ function updateCart(){
   const cc=document.getElementById('cartCount'),ct=document.getElementById('cartTotal');
   if(cc)cc.textContent=count; if(ct)ct.textContent=total;
 }
-function openCart(){renderCart();showStep(1);cartModal.style.display='flex'}
+function openCart(){couponUsed=false;reservedCoins=0;paymentScreenshotData='';try{sessionStorage.removeItem('magizhPaymentScreenshot')}catch(e){}renderCart();showStep(1);cartModal.style.display='flex'}
 function closeCart(){cartModal.style.display='none';updateAllCoinDisplays(getWallet())}
 function renderCart(){
   const min=getMinOrder(); minDisplay.textContent=min>0?'₹'+min.toLocaleString('en-IN'):'No minimum';
@@ -289,7 +296,7 @@ function showStep(n){
   checkoutTitle.textContent=n===1?'Your Cart':n===2?'Delivery Address':n===3?'Confirm Order':'Payment';
 }
 function goAddress(){
-  const sub=getProductTotal(),min=getMinOrder();
+  const sub=cart.reduce((s,x)=>s+getCatalog()[x.i][2]*x.q,0),min=getMinOrder();
   if(!cart.length){alert('Please add a product first.');return}
   if(min>0 && sub<min){alert('Minimum Bill Value is ₹'+min.toLocaleString('en-IN')+'. Please add more products.');return}
   showStep(2);
@@ -297,10 +304,10 @@ function goAddress(){
 function goConfirm(){
   const n=cname.value.trim(),ph=phone.value.trim(),pin=pincode.value.trim(),ad=addr.value.trim();
   if(!n||!ph||!pin||!ad){alert('Please enter your complete delivery address.');return}
-  const sub=getProductTotal();
-  confirmBox.innerHTML='<b>Order Summary</b><br>'+cart.map(x=>{const i=findCatalogIndexByKey(x.key);const p=i>=0?getCatalog()[i]:null;return p?p[1]+' × '+x.q:''}).filter(Boolean).join('<br>')+
+  const sub=cart.reduce((s,x)=>s+getCatalog()[x.i][2]*x.q,0);
+  confirmBox.innerHTML='<b>Order Summary</b><br>'+cart.map(x=>getCatalog()[x.i][1]+' × '+x.q).join('<br>')+
     '<hr style="border:0;border-top:1px solid #d5e0c6"><b>Subtotal: ₹'+sub+
-    '</b><br><b>Courier: ₹<span id="courierDisplay3">'+getCourier()+'</span></b><br><b>Grand Total: ₹'+(sub+getCourier())+
+    '</b><br><b>Courier: ₹<span id="courierDisplay3">50</span></b><br><b>Grand Total: ₹'+(sub+50)+
     '</b><br><br><b>Deliver To</b><br>'+n+'<br>'+ph+'<br>'+ad+'<br>'+pin;
   showStep(3);
 }
@@ -314,14 +321,12 @@ function setWallet(v){const n=Math.max(0,Math.floor(Number(v)||0));localStorage.
 function updateAllCoinDisplays(n=getWallet()){['topCoinBalance','heroCoinBalance','modalCoinBalance'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=n});const cb=document.getElementById('coinBalance'),cv=document.getElementById('coinBalanceValue');if(cb)cb.textContent=n;if(cv)cv.textContent=n;const users=getUsers(),id=getCurrentUserId(),u=users[id];const name=document.getElementById('loggedName'),lb=document.getElementById('loginBtn');if(name)name.textContent=u?('Hi, '+(u.name||'Customer')):'';if(lb)lb.textContent=id==='GUEST'?'Login':'Account'}
 let coinWalletAtPayment=0;
 let reservedCoins=0;
-function getProductTotal(){return cart.reduce((s,x)=>{const i=findCatalogIndexByKey(x.key);const p=i>=0?getCatalog()[i]:null;return s+(p?(Number(p[2])||0)*x.q:0)},0)}
+function getProductTotal(){return cart.reduce((s,x)=>s+getCatalog()[x.i][2]*x.q,0)}
 function getPayTotals(){const productTotal=getProductTotal();const available=Math.max(0,getWallet()-reservedCoins);const coin=couponUsed?Math.min(Math.floor(productTotal*0.5),available):0;return {productTotal,coin,courier:getCourier(),pay:Math.max(0,productTotal-coin+getCourier())}}
 function updatePaymentBox(){const x=getPayTotals();document.getElementById('payProductTotal').textContent=x.productTotal;document.getElementById('payCoin').textContent=x.coin;document.getElementById('payAmount').textContent=x.pay;const pc=document.getElementById('payCourier');if(pc)pc.textContent=x.courier;['courierDisplay','courierDisplay2','courierDisplay3'].forEach(id=>{const e=document.getElementById(id);if(e)e.textContent=x.courier});document.getElementById('couponBtn').textContent=couponUsed?'✓ Coins Used':'Use Coins';document.getElementById('couponBtn').classList.toggle('used',couponUsed);const displayBalance=Math.max(0,getWallet()-reservedCoins);updateAllCoinDisplays(displayBalance);const st=document.getElementById('screenshotStatus');if(st&&!paymentScreenshotData)st.textContent=couponUsed?'✓ ₹'+x.coin+' coins reserved. Wallet balance shown: '+displayBalance+' coins.':'No coins selected.'}
 function useCoupon(){if(couponUsed){reservedCoins=0;couponUsed=false}else{const productTotal=getProductTotal();reservedCoins=Math.min(Math.floor(productTotal*0.5),getWallet());couponUsed=reservedCoins>0}updatePaymentBox()}
 function selectPayment(method){selectedPayment='UPI';document.querySelectorAll('input[name="paymethod"]').forEach(r=>r.checked=(r.value==='UPI'));document.querySelectorAll('.payoption').forEach(x=>x.classList.toggle('active',x.querySelector('input')?.value==='UPI'));document.getElementById('upiArea').style.display='block'}
 function goPayment(){
-  couponUsed=false;
-  reservedCoins=0;
   coinWalletAtPayment=getWallet();
 
   const file=document.getElementById('paymentScreenshot');
@@ -354,7 +359,7 @@ function goPayment(){
       btn.disabled=true;
       btn.style.opacity='.55';
     }
-    if(st)st.textContent='Select “Use Coins” to apply up to 50% of your product value.';
+    if(st)st.textContent='Please complete the UPI payment and upload the screenshot.';
   }
 
   updatePaymentBox();
@@ -610,9 +615,9 @@ async function completePaymentAndPlace(event){
     userId:getLoggedUser()?(getLoggedUser().id||sessionStorage.getItem('magizhCurrentUserId')||''):sessionStorage.getItem('magizhCurrentUserId')||'',
     delivery:'7–10 days',
     items:cart.map(x=>({
-      name:(()=>{const i=findCatalogIndexByKey(x.key);const p=i>=0?getCatalog()[i]:null;return p?p[1]:''})(),
+      name:getCatalog()[x.i][1],
       qty:x.q,
-      price:(()=>{const i=findCatalogIndexByKey(x.key);const p=i>=0?getCatalog()[i]:null;return p?Number(p[2])||0:0})()
+      price:getCatalog()[x.i][2]
     })),
     status:'Payment Verification Pending'
   });
@@ -621,6 +626,7 @@ async function completePaymentAndPlace(event){
   try{if(window.magizhServerSync&&window.magizhServerSync.flush)window.magizhServerSync.flush()}catch(e){}
 
   cart=[];
+  persistCart();
   couponUsed=false;
   reservedCoins=0;
   paymentScreenshotData='';
@@ -650,36 +656,6 @@ async function completePaymentAndPlace(event){
   return false;
 }
 
-function openMyOrders(){
-  const u=getLoggedUser();
-  if(!u){openLogin();return}
-  renderMyOrders();
-  const m=document.getElementById('ordersModal');
-  if(m)m.style.display='flex';
-}
-function closeMyOrders(){const m=document.getElementById('ordersModal');if(m)m.style.display='none'}
-function renderMyOrders(){
-  const box=document.getElementById('myOrdersList'); if(!box)return;
-  let orders=[];
-  try{orders=JSON.parse(localStorage.getItem('magizhOrders')||'[]');if(!Array.isArray(orders))orders=[]}catch(e){orders=[]}
-  const u=getLoggedUser();
-  const uid=String(sessionStorage.getItem('magizhCurrentUserId')||u?.id||'');
-  const phone=String(u?.phone||'');
-  const mine=orders.filter(o=>{
-    const ouid=String(o.userId||'');
-    return (uid && ouid===uid) || (!ouid && phone && String(o.phone||'')===phone) || (phone && String(o.phone||'')===phone);
-  }).sort((a,b)=>String(b.date||'').localeCompare(String(a.date||'')));
-  if(!mine.length){box.innerHTML='<div class="emptyOrders">No orders found yet.<br>Your confirmed orders will appear here.</div>';return}
-  box.innerHTML=mine.map(o=>{
-    const status=String(o.status||'Order Placed');
-    const steps=['Order Placed','Payment Verified','Ready to Dispatch','Dispatched','Completed'];
-    const idx=status==='Payment Verification Pending'?0:Math.max(0,steps.indexOf(status));
-    const progress=steps.map((st,i)=>'<span style="display:inline-block;padding:4px 7px;margin:2px;border-radius:10px;font-size:8px;background:'+(i<=idx?'#e9f1df':'#eee5d8')+';color:'+(i<=idx?'#536c3e':'#786b5e')+'">'+st+'</span>').join('');
-    const items=Array.isArray(o.items)?o.items.map(it=>String(it.name||'Product')+' × '+(Number(it.qty)||1)).join('<br>'):'Order items';
-    const rejected=status.toLowerCase().includes('reject')||status.toLowerCase().includes('cancel');
-    return '<div class="orderCard"><div style="display:flex;justify-content:space-between;gap:8px"><b>'+String(o.id||'Order')+'</b><span class="status" style="'+(rejected?'background:#f8e3df;color:#9a493d':'')+'">'+status+'</span></div><div style="margin:6px 0;color:#786b5e">'+String(o.date||'')+'</div><div>'+items+'</div><hr style="border:0;border-top:1px solid #eadfce;margin:8px 0"><div style="display:flex;justify-content:space-between"><span>Subtotal</span><b>₹'+(Number(o.subtotal)||0)+'</b></div><div style="display:flex;justify-content:space-between"><span>Coins Used</span><b>₹'+(Number(o.coinUsed)||0)+'</b></div><div style="display:flex;justify-content:space-between"><span>Courier</span><b>₹'+(Number(o.courier)||0)+'</b></div><div style="display:flex;justify-content:space-between;font-size:12px"><span>Amount Paid</span><b>₹'+(Number(o.amountPaid)||Number(o.total)||0)+'</b></div><div style="margin-top:8px">'+(rejected?'':progress)+'</div></div>';
-  }).join('');
-}
 function removeDuplicateLoginButtons(){
   document.querySelectorAll('button').forEach(b=>{
     if(b.closest('header'))return;
@@ -762,7 +738,6 @@ window.addEventListener('magizhServerSync',function(){
     updateFooter();
     removeDuplicateLoginButtons();
     if(productOpen && current>=0){const i=findCatalogIndexByKey(productKeyFromProduct(getCatalog()[current]||[])); if(i>=0)current=i;}
-    if(document.getElementById('ordersModal')?.style.display==='flex')renderMyOrders();
   }catch(e){console.error('Customer server sync render error',e);}
 });
 </script>
