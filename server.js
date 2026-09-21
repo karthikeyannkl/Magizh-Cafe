@@ -1,6 +1,11 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
+const os = require("os");
+const crypto = require("crypto");
+const { execFile } = require("child_process");
+const { promisify } = require("util");
+const execFileAsync = promisify(execFile);
 
 const PORT = Number(process.env.PORT || 10000);
 const TTL_DAYS = Math.max(1, Number(process.env.DATA_TTL_DAYS || 30));
@@ -145,6 +150,31 @@ async function readBody(req) {
   }
 }
 
+
+function parseBillOCRText(text) {
+  const raw = String(text || '').replace(/\r/g, '\n');
+  const flat = raw.replace(/\s+/g, ' ');
+  let billNo = '';
+  const bm = flat.match(/(?:B\.?\s*No|Bill\s*No|Bill\s*Number)\s*[:#-]?\s*([A-Z0-9-]+)/i);
+  if (bm) billNo = bm[1].replace(/[^A-Z0-9-]/gi, '');
+  let billDate = '';
+  const dm = flat.match(/(?:Date|Dt)\s*[:#-]?\s*(\d{1,2}[-\/.]\d{1,2}[-\/.]\d{4})/i);
+  if (dm) { const m = dm[1].match(/(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})/); if(m) billDate = m[1].padStart(2,'0')+'-'+m[2].padStart(2,'0')+'-'+m[3]; }
+  let amount = 0;
+  const tm = flat.match(/(?:TOTAL|Grand\s*Total|Net\s*Total)\s*[:=-]?\s*[₹Rs. ]*([0-9][0-9,]*(?:\.[0-9]{1,2})?)/i);
+  if (tm) amount = Number(tm[1].replace(/,/g,''));
+  if (!amount) {
+    const amLabel = flat.match(/Balance\s*Amt\s*[:=-]?/i);
+    if(amLabel){
+      const tail = flat.slice(amLabel.index + amLabel[0].length, amLabel.index + amLabel[0].length + 100);
+      const nums = [...tail.matchAll(/([0-9][0-9,]*(?:\.[0-9]{1,2})?)/g)].map(x=>Number(x[1].replace(/,/g,''))).filter(n=>n>0);
+      if(nums.length) amount=Math.max(...nums);
+    }
+  }
+  if (!amount) { const nums = [...flat.matchAll(/(?:^|\s)([0-9]{2,6}(?:\.[0-9]{1,2})?)(?=\s|$)/g)].map(x=>Number(x[1].replace(/,/g,''))).filter(n=>n>0); if(nums.length) amount=Math.max(...nums); }
+  return {billNo, date:billDate, amount:Math.round((amount||0)*100)/100};
+}
+
 const server = http.createServer(async (req, res) => {
   const requestId =
     Date.now() +
@@ -253,6 +283,25 @@ const server = http.createServer(async (req, res) => {
         updatedAt: saved.updatedAt,
         expiresAt: saved.expiresAt
       });
+    }
+
+
+    if (req.method === "POST" && url.pathname === "/api/bill-rewards/scan") {
+      const body = await readBody(req);
+      const image = String(body.image || '');
+      const m = image.match(/^data:image\/(png|jpeg|jpg|webp);base64,(.+)$/i);
+      if(!m) return sendJson(res,400,{ok:false,error:"Invalid bill image."});
+      const ext = m[1].toLowerCase()==='png' ? 'png' : 'jpg';
+      const tmp = path.join(os.tmpdir(), `magizh-bill-${crypto.randomBytes(8).toString('hex')}.${ext}`);
+      try {
+        fs.writeFileSync(tmp, Buffer.from(m[2], 'base64'));
+        const { stdout } = await execFileAsync('tesseract', [tmp, 'stdout', '--psm', '6'], { timeout: 30000, maxBuffer: 1024*1024 });
+        const bill = parseBillOCRText(stdout);
+        if(!bill.billNo || !bill.date || !(bill.amount>0)) return sendJson(res,422,{ok:false,error:"Required bill details could not be detected."});
+        return sendJson(res,200,{ok:true,bill});
+      } catch (e) {
+        return sendJson(res,503,{ok:false,error:"Server OCR is unavailable."});
+      } finally { try{fs.unlinkSync(tmp)}catch(_){} }
     }
 
     if (req.method === "GET" && url.pathname === "/api/bill-rewards") {
