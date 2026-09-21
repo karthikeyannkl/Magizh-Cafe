@@ -29,6 +29,7 @@ const DEFAULT_STATE = {
   magizhSettings: {},
   magizhB5: {},
   magizhCoinWallet: "0",
+  magizhBillRewards: [],
   magizhAdminPassword: null,
   magizhCurrentUser: null,
   magizhCurrentUserId: "GUEST"
@@ -252,6 +253,41 @@ const server = http.createServer(async (req, res) => {
         updatedAt: saved.updatedAt,
         expiresAt: saved.expiresAt
       });
+    }
+
+    if (req.method === "GET" && url.pathname === "/api/bill-rewards") {
+      const store = readStore();
+      const userId = String(url.searchParams.get("userId") || "").trim();
+      const rewards = (store.state.magizhBillRewards || []).filter(x => !userId || String(x.userId) === userId);
+      return sendJson(res, 200, { ok:true, rewards });
+    }
+
+    if (req.method === "POST" && url.pathname === "/api/bill-rewards/claim") {
+      const body = await readBody(req);
+      const userId = String(body.userId || "").trim();
+      const billNo = String(body.billNo || "").trim().toUpperCase();
+      const billDate = String(body.billDate || "").trim();
+      const amount = Number(body.amount || 0);
+      if(!userId || !billNo || !billDate || !(amount > 0)) return sendJson(res,400,{ok:false,error:"Bill Number, Bill Date and Total Amount are required."});
+      const result = await new Promise((resolve,reject)=>{
+        writeQueue = writeQueue.then(()=>{
+          const store = readStore();
+          const rewards = Array.isArray(store.state.magizhBillRewards)?store.state.magizhBillRewards:[];
+          const duplicate = rewards.find(x => String(x.billNo).toUpperCase()===billNo && String(x.billDate)===billDate);
+          if(duplicate){ resolve({ok:false,status:409,error:"This bill has already been claimed."}); return; }
+          const users = store.state.magizhUsers && typeof store.state.magizhUsers==='object' ? store.state.magizhUsers : {};
+          const user = users[userId];
+          if(!user){ resolve({ok:false,status:404,error:"Customer account not found."}); return; }
+          const coins = Math.floor(amount);
+          user.coins = Number(user.coins||0) + coins;
+          rewards.push({id:'BR-'+Date.now()+'-'+Math.random().toString(36).slice(2,7).toUpperCase(),userId,name:user.name||body.name||'',phone:user.phone||body.phone||'',billNo,billDate,amount,coins,status:'Credited',createdAt:new Date().toISOString()});
+          store.state.magizhUsers=users; store.state.magizhBillRewards=rewards;
+          const saved=writeStore(store.state);
+          resolve({ok:true,status:200,coinsAdded:coins,users,rewards:rewards.filter(x=>String(x.userId)===userId),updatedAt:saved.updatedAt});
+        }).catch(reject);
+        writeQueue.catch(()=>{});
+      });
+      return sendJson(res,result.status||200,result);
     }
 
     if (
