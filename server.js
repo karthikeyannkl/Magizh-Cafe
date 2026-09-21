@@ -307,7 +307,8 @@ const server = http.createServer(async (req, res) => {
     if (req.method === "GET" && url.pathname === "/api/bill-rewards") {
       const store = readStore();
       const userId = String(url.searchParams.get("userId") || "").trim();
-      const rewards = (store.state.magizhBillRewards || []).filter(x => !userId || String(x.userId) === userId);
+      const rawRewards = store.state.magizhBillRewards;
+      const rewards = Array.isArray(rawRewards) ? rawRewards : (typeof rawRewards === 'string' ? (()=>{try{return JSON.parse(rawRewards)||[]}catch(e){return []}})() : []);
       return sendJson(res, 200, { ok:true, rewards });
     }
 
@@ -321,10 +322,14 @@ const server = http.createServer(async (req, res) => {
       const result = await new Promise((resolve,reject)=>{
         writeQueue = writeQueue.then(()=>{
           const store = readStore();
-          const rewards = Array.isArray(store.state.magizhBillRewards)?store.state.magizhBillRewards:[];
+          const rawRewards = store.state.magizhBillRewards;
+          const rewards = Array.isArray(rawRewards) ? rawRewards : (typeof rawRewards === 'string' ? (()=>{try{return JSON.parse(rawRewards)||[]}catch(e){return []}})() : []);
           const duplicate = rewards.find(x => String(x.billNo).toUpperCase()===billNo && String(x.billDate)===billDate);
           if(duplicate){ resolve({ok:false,status:409,error:"This bill has already been claimed."}); return; }
-          const users = store.state.magizhUsers && typeof store.state.magizhUsers==='object' ? store.state.magizhUsers : {};
+          const rawUsers = store.state.magizhUsers;
+          let users = {};
+          if(rawUsers && typeof rawUsers==='object' && !Array.isArray(rawUsers)) users = rawUsers;
+          else if(typeof rawUsers==='string'){ try { const parsed=JSON.parse(rawUsers); if(parsed && typeof parsed==='object' && !Array.isArray(parsed)) users=parsed; } catch(e){} }
           const user = users[userId];
           if(!user){ resolve({ok:false,status:404,error:"Customer account not found."}); return; }
           const coins = Math.floor(amount);
