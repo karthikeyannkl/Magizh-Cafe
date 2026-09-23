@@ -4,7 +4,7 @@
   // simultaneous PUT requests cannot overwrite one another.
   const DEFAULT_KEYS = [
     'magizhUsers','magizhOrders','magizhProducts','magizhCategories',
-    'magizhSettings','magizhB5','magizhCoinWallet','magizhBillRewards'
+    'magizhSettings','magizhB5','magizhCoinWallet'
   ];
   const SYNC_KEYS = Array.isArray(window.MAGIZH_SYNC_KEYS)
     ? window.MAGIZH_SYNC_KEYS
