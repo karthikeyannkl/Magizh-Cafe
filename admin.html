@@ -265,4 +265,27 @@ window.addEventListener('magizhServerSync',function(){
   render(id);
 });
 </script><div class="fullScreenModal" id="imageViewer" onclick="closeImageViewer(event)"><button class="closeFull" onclick="closeImageViewer(event)">×</button><img id="fullPaymentImage" alt="Payment screenshot"></div><style>#adminLoginGate{position:fixed;inset:0;background:#f7f1e8;z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px}#adminLoginGate .box{width:min(390px,100%);background:#fff;border-radius:22px;padding:24px}#adminLoginGate input,#adminLoginGate button{width:100%;box-sizing:border-box;padding:13px;border-radius:12px;margin:7px 0}#adminLoginGate button{border:0;background:#e67e22;color:#fff;font-weight:700}</style><div id="adminLoginGate"><div class="box"><h2>Admin Login</h2><input id="adminUser" placeholder="Username"><input id="adminPass" type="password" placeholder="Password"><button onclick="adminSignIn()">Login</button></div></div><script>function adminSignIn(){if(document.getElementById('adminUser').value==='admin'&&document.getElementById('adminPass').value===getAdminPassword()){sessionStorage.setItem('magizhAdminAuth','1');document.getElementById('adminLoginGate').style.display='none'}else alert('Invalid username or password.')}document.addEventListener('DOMContentLoaded',()=>{if(sessionStorage.getItem('magizhAdminAuth')==='1')document.getElementById('adminLoginGate').style.display='none'});</script><script>window.MAGIZH_SYNC_KEYS=['magizhUsers','magizhOrders','magizhProducts','magizhCategories','magizhSettings','magizhB5','magizhCoinWallet','magizhAdminPassword'];</script><script src="/server-sync.js"></script>
+
+<style id="magizhAdminFinalUiFix">
+/* Match admin typography and component sizing to the customer app */
+html,body{font-family:Arial,sans-serif!important;font-size:14px}
+body *{font-family:Arial,sans-serif!important}
+h1,h2,h3,h4,h5,h6{font-family:Arial,sans-serif!important;font-weight:800!important}
+header h1{font-size:28px!important;font-weight:800!important;line-height:1.1!important}
+label{font-size:13px!important;font-weight:700!important}
+input,select,textarea{font-size:14px!important;min-height:44px!important}
+button,.tab,.statusTab,.primary,.secondary,.danger{font-size:13px!important;font-weight:800!important}
+.tab{padding:10px 14px!important}
+.panel{border-radius:18px!important;padding:18px!important}
+.panel h2{font-size:27px!important;line-height:1.2!important}
+.metric{font-size:13px!important;font-weight:700!important}
+.metric b{font-size:29px!important;font-weight:800!important}
+.order{font-size:13px!important;line-height:1.65!important}
+.pill{font-size:11px!important;font-weight:800!important}
+.muted,.empty,.statusNote{font-size:13px!important;line-height:1.5!important}
+.product b{font-size:14px!important}
+#adminLoginGate h2{font-size:28px!important;font-weight:800!important}
+#adminLoginGate input,#adminLoginGate button{font-size:14px!important;min-height:46px!important}
+</style>
+
 </body></html>

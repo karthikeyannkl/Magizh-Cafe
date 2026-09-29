@@ -13,6 +13,7 @@
 
   const nativeSet = localStorage.setItem.bind(localStorage);
   const nativeRemove = localStorage.removeItem.bind(localStorage);
+  const nativeGet = localStorage.getItem.bind(localStorage);
   let syncing = false;
   let flushRunning = false;
   const pending = new Map();
@@ -72,17 +73,25 @@
       const j = await r.json();
       if(!j.state) return false;
 
+      let changed = false;
       syncing = true;
       Object.entries(j.state).forEach(([k,v])=>{
         // Never let a server pull overwrite a local change that has not
         // yet been confirmed by the server.
         if(pending.has(k)) return;
-        if(v === null || typeof v === 'undefined') nativeRemove(k);
-        else nativeSet(k, typeof v === 'string' ? v : JSON.stringify(v));
+        const next = (v === null || typeof v === 'undefined') ? null : (typeof v === 'string' ? v : JSON.stringify(v));
+        const prev = nativeGet(k);
+        if(next === null){
+          if(prev !== null){ nativeRemove(k); changed = true; }
+        }else if(prev !== next){
+          nativeSet(k, next); changed = true;
+        }
       });
       syncing = false;
 
-      window.dispatchEvent(new Event('magizhServerSync'));
+      // Only re-render the UI when the server actually changed something.
+      // This prevents the page from flashing/looping every polling cycle.
+      if(changed) window.dispatchEvent(new Event('magizhServerSync'));
       return true;
     }catch(e){
       syncing = false;

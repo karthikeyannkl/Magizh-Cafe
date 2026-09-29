@@ -864,4 +864,57 @@ window.addEventListener('magizhServerSync',function(){
 });
 </script>
 <script>window.MAGIZH_SYNC_KEYS=['magizhProducts','magizhCategories','magizhSettings','magizhUsers','magizhB5','magizhOrders','magizhCoinWallet'];</script><script src="/server-sync.js"></script>
+
+<style id="magizhFinalUiFix">
+/* Final UI consistency + modal visibility fixes */
+:root{--magizh-green:#789b58;--magizh-deep:#3a291f;--magizh-orange:#e9792d;--magizh-cream:#fffdf7}
+html,body{font-family:Arial,sans-serif!important;font-size:14px}
+body *{font-family:Arial,sans-serif!important}
+h1,h2,h3,h4,h5,h6,.ey,.hero h1,.head h2,.panel h2{font-family:Arial,sans-serif!important;font-weight:800!important}
+.hero h1{font-size:36px!important;line-height:1.12!important}
+.hero p{font-size:14px!important;line-height:1.65!important}
+.ey{font-size:11px!important;font-weight:800!important}
+.cat{font-size:12px!important;font-weight:700!important;padding:9px 14px!important}
+.head h2{font-size:29px!important}
+#count{font-size:12px!important;font-weight:700!important}
+.body h3{font-size:18px!important;font-weight:800!important}
+.price{font-size:17px!important;font-weight:800!important}
+.coinline{font-size:10px!important;font-weight:600!important}
+.view,.loginbtn,.cartbar button,.buy,.actions button,.nextbtn,.backbtn,.couponbtn{font-size:12px!important;font-weight:800!important}
+/* Header account controls live only in the bottom navigation */
+.topActions{display:none!important}
+/* Bottom navigation uses the same visual language as the rest of the app */
+.magizhBottomNav{height:78px!important;background:rgba(255,253,247,.99)!important;border-top:1px solid #e8ddcc!important;box-shadow:0 -8px 24px rgba(58,41,31,.14)!important}
+.magizhBottomNav button{font-family:Arial,sans-serif!important;font-size:11px!important;font-weight:800!important;color:#5b5148!important}
+.magizhBottomNav button.active{color:#3f5f32!important}
+.magizhBottomNav button .navIcon{width:34px!important;height:34px!important;font-size:20px!important}
+.magizhBottomNav button .navBadge{font-size:9px!important;min-width:17px!important;height:17px!important}
+body{padding-bottom:86px!important}
+/* Sheets must sit above the fixed navigation and scroll without hiding content */
+.modal{z-index:200!important}
+.sheet{max-height:calc(100vh - 18px)!important;overflow-y:auto!important;padding:22px 18px 105px!important;-webkit-overflow-scrolling:touch}
+.gallery{gap:9px!important;margin:14px 0 18px!important}
+.g{height:110px!important;min-height:110px!important;border-radius:12px!important;background-size:cover!important;background-position:center!important}
+#productModal .sheet p{font-size:15px!important;line-height:1.55!important;font-weight:500!important}
+#productModal #mname{font-size:30px!important;line-height:1.2!important;font-weight:800!important;margin:12px 0!important}
+#productModal #mprice{font-size:21px!important;font-weight:800!important}
+.coinbox{font-size:13px!important;font-weight:700!important}
+#cartModal .sheet,#ordersModal .sheet,#coinsPanel .sheet{padding-bottom:105px!important}
+#cartModal .sheet{font-size:14px!important}
+#cartModal .cartitem{font-size:14px!important;line-height:1.55!important}
+#cartModal .cartrow b{font-size:15px!important}
+#cartModal .qty button{font-size:19px!important}
+#ordersModal .orderCard{font-size:14px!important;line-height:1.75!important}
+#ordersModal .orderCard b{font-size:15px!important}
+#ordersModal .status{font-size:12px!important}
+.emptyOrders{font-size:14px!important}
+.loginbox,.loginbox *{font-family:Arial,sans-serif!important}
+.loginbox h2{font-size:29px!important;font-weight:800!important}
+.loginbox label,.loginstatus{font-size:13px!important}
+.loginbox input{font-size:15px!important}
+/* Prevent transient stacking/flash from the fixed nav when a modal is open */
+body:has(.modal[style*="display: flex"]) .magizhBottomNav{z-index:90!important}
+@media(max-width:430px){.hero h1{font-size:34px!important}.section{padding:22px 13px}.pic{height:150px!important}}
+</style>
+
 </body></html>
