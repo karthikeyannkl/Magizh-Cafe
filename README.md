@@ -52,3 +52,9 @@ Customer Login uses Mobile Number + Password. Forgot Password opens a WhatsApp r
 - Customer page is fully covered until the customer logs in. The home page is not visible behind the initial login screen.
 - The intro video is still attempted first. If a browser/webview blocks autoplay or video playback, the login screen opens automatically instead of exposing the home page.
 - Forgot Password and Register remain available from the login gate.
+
+## v5 Login Button Fix
+The customer login action is explicitly rendered as a visible orange Login button in both the normal login modal and the login-only gate. Enter on the password field also triggers login. Upload the complete package together.
+
+## Login intro video fix (v6)
+The login intro no longer skips immediately to Login when mobile Chrome/WebView blocks autoplay. The intro video is shown first with a Play Intro button. Tapping Play starts the muted video; when the video ends, the customer Login screen opens.
