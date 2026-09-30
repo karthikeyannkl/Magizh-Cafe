@@ -101,6 +101,7 @@ body{margin:0 auto}
     <input id="regMobile" inputmode="numeric" maxlength="10" placeholder="Mobile Number">
     <input id="regAge" inputmode="numeric" maxlength="3" placeholder="Age">
     <textarea id="regAddress" placeholder="Address" style="width:100%;box-sizing:border-box;padding:12px;border:1px solid #d8c9b7;border-radius:10px;margin:6px 0;min-height:75px;font-family:inherit"></textarea>
+    <input id="regPassword" type="password" minlength="6" autocomplete="new-password" placeholder="Create Password (minimum 6 characters)">
     <button onclick="registerNewUserFinal()">Register & Continue</button>
     <div class="loginstatus">After registration, use your mobile number and password to log in.</div>
   </div>
@@ -641,7 +642,8 @@ async function completePaymentAndPlace(event){
 
 function removeDuplicateLoginButtons(){
   document.querySelectorAll('button').forEach(b=>{
-    if(b.closest('header'))return;
+    // Never remove the real LOGIN button inside the customer login modal.
+    if(b.closest('header') || b.closest('#loginModal'))return;
     if(String(b.textContent||'').trim().toLowerCase()==='login'){b.remove();}
   });
 }
