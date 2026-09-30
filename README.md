@@ -34,27 +34,9 @@ Password: `123456`
 Upload/replace the complete files from this ZIP together. Do not mix the old `index.html`, `admin.html`, `server.js`, or `server-sync.js` with these files.
 
 
-## Password recovery
-- Customer login uses Mobile Number + Password; OTP is not used in this version.
-- Forgot Password opens WhatsApp to the Admin contact configured in Admin → Social & Contact.
-- Admin can search the customer in Users & Coins and use Reset Customer Password.
-- This test/demo stores the password in the synced user record; before production, move authentication/password hashing to the server.
-
-
-## Login Splash
-The customer intro video is served by `/login-intro.mp4` with HTTP Range support so mobile browsers can play the MP4 reliably.
-
-## Customer password reset
-Customer Login uses Mobile Number + Password. Forgot Password opens a WhatsApp reset request using the Admin WhatsApp value in Admin → Social & Contact. Admin → Users & Coins contains the Customer Password Reset control.
-
-
-## Login gate fix
-- Customer page is fully covered until the customer logs in. The home page is not visible behind the initial login screen.
-- The intro video is still attempted first. If a browser/webview blocks autoplay or video playback, the login screen opens automatically instead of exposing the home page.
-- Forgot Password and Register remain available from the login gate.
-
-## v5 Login Button Fix
-The customer login action is explicitly rendered as a visible orange Login button in both the normal login modal and the login-only gate. Enter on the password field also triggers login. Upload the complete package together.
-
-## Login intro video fix (v6)
-The login intro no longer skips immediately to Login when mobile Chrome/WebView blocks autoplay. The intro video is shown first with a Play Intro button. Tapping Play starts the muted video; when the video ends, the customer Login screen opens.
+## Customer login updates in this version
+- `210030.mp4` is served as `/login-intro.mp4` and plays as the customer intro before the login screen for logged-out users.
+- Normal customer login uses Mobile Number + Password instead of OTP.
+- Forgot Password opens a WhatsApp request to the configured admin WhatsApp number.
+- Admin > Users & Coins includes customer password reset after searching by User ID or Mobile Number.
+- Admin header `Reset Demo` was removed.

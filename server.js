@@ -165,6 +165,39 @@ const server = http.createServer(async (req, res) => {
       return res.end();
     }
 
+
+    if (req.method === "GET" && url.pathname === "/login-intro.mp4") {
+      const filePath = path.join(ROOT, "login-intro.mp4");
+      if (!fs.existsSync(filePath)) return sendJson(res, 404, { ok:false, error:"login-intro.mp4 not found" });
+      const stat = fs.statSync(filePath);
+      const size = stat.size;
+      const range = req.headers.range;
+      res.setHeader("Content-Type", "video/mp4");
+      res.setHeader("Accept-Ranges", "bytes");
+      res.setHeader("Cache-Control", "public, max-age=3600");
+      if (!range) {
+        res.writeHead(200, { "Content-Length": size });
+        return fs.createReadStream(filePath).pipe(res);
+      }
+      const match = /^bytes=(\d*)-(\d*)$/.exec(range);
+      if (!match) {
+        res.writeHead(416, { "Content-Range": `bytes */${size}` });
+        return res.end();
+      }
+      let start = match[1] ? Number(match[1]) : Math.max(0, size - Number(match[2] || 0));
+      let end = match[2] ? Number(match[2]) : size - 1;
+      if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || start >= size || end < start) {
+        res.writeHead(416, { "Content-Range": `bytes */${size}` });
+        return res.end();
+      }
+      end = Math.min(end, size - 1);
+      res.writeHead(206, {
+        "Content-Length": end - start + 1,
+        "Content-Range": `bytes ${start}-${end}/${size}`
+      });
+      return fs.createReadStream(filePath, { start, end }).pipe(res);
+    }
+
     if (
       req.method === "GET" &&
       url.pathname === "/api/health"
@@ -281,50 +314,6 @@ const server = http.createServer(async (req, res) => {
         "index.html",
         "text/html; charset=utf-8"
       );
-    }
-
-    if (req.method === "GET" && url.pathname === "/login-intro.mp4") {
-      const filePath = path.join(ROOT, "login-intro.mp4");
-      if (!fs.existsSync(filePath)) {
-        return sendJson(res, 404, { ok: false, error: "login-intro.mp4 not found" });
-      }
-
-      const stat = fs.statSync(filePath);
-      const total = stat.size;
-      const range = req.headers.range;
-
-      if (!range) {
-        res.writeHead(200, {
-          "Content-Type": "video/mp4",
-          "Content-Length": total,
-          "Accept-Ranges": "bytes",
-          "Cache-Control": "public, max-age=3600"
-        });
-        return fs.createReadStream(filePath).pipe(res);
-      }
-
-      const match = /^bytes=(\d*)-(\d*)$/.exec(range);
-      if (!match) {
-        res.writeHead(416, { "Content-Range": `bytes */${total}` });
-        return res.end();
-      }
-
-      let start = match[1] ? Number(match[1]) : 0;
-      let end = match[2] ? Number(match[2]) : total - 1;
-      if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || end < start || start >= total) {
-        res.writeHead(416, { "Content-Range": `bytes */${total}` });
-        return res.end();
-      }
-      end = Math.min(end, total - 1);
-
-      res.writeHead(206, {
-        "Content-Type": "video/mp4",
-        "Content-Length": end - start + 1,
-        "Content-Range": `bytes ${start}-${end}/${total}`,
-        "Accept-Ranges": "bytes",
-        "Cache-Control": "public, max-age=3600"
-      });
-      return fs.createReadStream(filePath, { start, end }).pipe(res);
     }
 
     if (
