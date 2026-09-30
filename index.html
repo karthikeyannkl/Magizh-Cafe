@@ -663,8 +663,8 @@ async function completePaymentAndPlace(event){
 
 function removeDuplicateLoginButtons(){
   document.querySelectorAll('button').forEach(b=>{
-    // Never remove the real LOGIN button inside the customer login modal.
-    if(b.closest('header') || b.closest('#loginModal'))return;
+    // Keep every functional login button inside the customer/B5 login modals.
+    if(b.closest('header') || b.closest('#loginModal') || b.closest('#b5RegisterModal'))return;
     if(String(b.textContent||'').trim().toLowerCase()==='login'){b.remove();}
   });
 }
