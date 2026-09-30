@@ -113,12 +113,11 @@ body{margin:0 auto}
     <span class="ey">B5 USER</span>
     <h2>B5 Member Login</h2>
     <p style="font-size:10px;color:#786b5e;line-height:1.5">
-      Enter the mobile number registered in your B5 account.
+      Enter your B5 Member ID or registered mobile number and password.
     </p>
-    <input id="b5RegMobile" inputmode="numeric" maxlength="10" placeholder="B5 Registered Mobile Number">
-    <button id="b5SendOtpBtn" onclick="sendB5RegisterOtp()">Send OTP</button>
-    <input id="b5RegOtp" inputmode="numeric" maxlength="6" placeholder="Enter OTP" style="display:none">
-    <button id="b5VerifyBtn" onclick="verifyB5RegisterOtp()" style="display:none">Verify & Continue</button>
+    <input id="b5RegMobile" inputmode="text" maxlength="30" placeholder="B5 Member ID / Mobile Number" autocomplete="username">
+    <input id="b5RegPassword" type="password" maxlength="60" placeholder="Password" autocomplete="current-password" onkeydown="if(event.key==='Enter'){event.preventDefault();b5PasswordLogin();}">
+    <button id="b5PasswordLoginBtn" type="button" onclick="b5PasswordLogin()" style="display:block!important;visibility:visible!important;opacity:1!important;width:100%;min-height:44px;padding:12px;border-radius:22px;border:0;background:#e9792d;color:#fff;font-weight:700;margin-top:8px;cursor:pointer">LOGIN</button>
     <div class="loginstatus" id="b5RegStatus"></div>
   </div>
 </div>
@@ -487,33 +486,55 @@ function closeForgotPassword(){const m=document.getElementById('forgotPasswordMo
 function getAdminWhatsApp(){const s=typeof settings==='function'?settings():{};let raw=String(s.forgotWhatsapp||'').trim()||String(s.whatsapp||'').trim()||String(s.phone||'').trim();let digits=raw.replace(/\D/g,'');if(digits.length===10)digits='91'+digits;return digits;}
 function sendForgotPasswordWhatsApp(){const ph=document.getElementById('forgotPhone')?.value.trim()||'',status=document.getElementById('forgotStatus');if(!/^\d{10}$/.test(ph)){if(status)status.textContent='Please enter your registered 10-digit mobile number.';return}const found=findUserByPhone(ph);if(!found){if(status)status.textContent='Mobile number is not registered.';return}const wa=getAdminWhatsApp();if(!wa){if(status)status.textContent='Admin WhatsApp number is not configured.';return}const msg='Magizh Cafe Password Reset Request%0AUser ID: '+encodeURIComponent(found.id)+'%0AMobile: '+encodeURIComponent(ph)+'%0A%0APlease reset my customer password.';window.open('https://wa.me/'+wa+'?text='+msg,'_blank');}
 function registerNewUserFinal(){const name=document.getElementById('regName').value.trim(),phone=document.getElementById('regMobile').value.trim(),age=document.getElementById('regAge').value.trim(),address=document.getElementById('regAddress').value.trim(),password=document.getElementById('regPassword')?.value||'';if(!name||!/^[0-9]{10}$/.test(phone)||!age||!address||password.length<6){alert('Please complete Name, Mobile Number, Age, Address and a password of at least 6 characters.');return}const users=getUsers(),existing=Object.keys(users).find(k=>String(users[k].phone||'')===phone);if(existing){alert('This mobile number is already registered. Please login with your password.');return}const id='MC-'+phone.slice(-6);users[id]={id,name,phone,age,address,password,coins:0,memberType:'Normal',registeredAt:new Date().toISOString()};localStorage.setItem('magizhUsers',JSON.stringify(users));sessionStorage.removeItem('magizhCurrentUser');sessionStorage.removeItem('magizhCurrentUserId');localStorage.setItem('magizhCoinWallet','0');updateAllCoinDisplays(0);syncCustomerHeader();closeRegister();openLogin();const lp=document.getElementById('loginPhone');if(lp)lp.value=phone;alert('Registration successful. Please login with your mobile number and password.');}
-let b5DemoOtp='';
-function sendB5RegisterOtp(){
-  const ph=document.getElementById('b5RegMobile').value.trim();
-  if(!/^\d{10}$/.test(ph)){alert('Please enter a valid 10-digit mobile number.');return}
-  b5DemoOtp=String(Math.floor(100000+Math.random()*900000));
-  document.getElementById('b5RegOtp').style.display='block';
-  document.getElementById('b5VerifyBtn').style.display='block';
-  document.getElementById('b5SendOtpBtn').textContent='Resend OTP';
-  document.getElementById('b5RegStatus').textContent='Demo OTP: '+b5DemoOtp+' (production B5 server OTP will be connected here).';
+function getB5Records(){
+  try{
+    const raw=localStorage.getItem('magizhB5');
+    const data=raw?JSON.parse(raw):{};
+    return data && typeof data==='object' ? data : {};
+  }catch(e){return {};}
 }
-function verifyB5RegisterOtp(){
-  const ph=document.getElementById('b5RegMobile').value.trim(), otp=document.getElementById('b5RegOtp').value.trim();
-  if(otp!==b5DemoOtp){alert('Invalid OTP.');return}
-  // Demo placeholder for the future B5 API: if a B5 record is already stored locally, use it.
-  let b5=null; try{b5=JSON.parse(localStorage.getItem('magizhB5_'+ph)||'null')}catch(e){}
-  if(!b5){
-    alert('B5 account lookup is ready for server connection, but this demo has no B5 server record for this mobile number yet.');
+function findB5Account(loginValue){
+  const q=String(loginValue||'').trim().toLowerCase();
+  if(!q)return null;
+  const records=getB5Records();
+  for(const key of Object.keys(records)){
+    const b=records[key]||{};
+    const candidates=[key,b.id,b.memberId,b.memberID,b.userId,b.phone,b.mobile,b.mobileNumber,b.registeredMobile];
+    if(candidates.some(v=>String(v??'').trim().toLowerCase()===q)) return {key,id:String(b.id||b.memberId||key),account:b};
+  }
+  // Also support the legacy per-mobile demo record if present.
+  const legacyKeys=Object.keys(records).filter(k=>k.toLowerCase().includes(q));
+  if(legacyKeys.length){const k=legacyKeys[0],b=records[k]||{};return {key:k,id:String(b.id||b.memberId||k),account:b};}
+  return null;
+}
+function b5PasswordLogin(){
+  const login=document.getElementById('b5RegMobile')?.value.trim()||'';
+  const password=document.getElementById('b5RegPassword')?.value||'';
+  const status=document.getElementById('b5RegStatus');
+  if(!login){if(status)status.textContent='Please enter your B5 Member ID or mobile number.';return}
+  if(!password){if(status)status.textContent='Please enter your B5 password.';return}
+  const found=findB5Account(login);
+  if(!found){if(status)status.textContent='B5 member account not found.';return}
+  const b=found.account;
+  if(String(b.password||'')!==String(password)){
+    if(status)status.textContent='Incorrect B5 password.';
     return;
   }
-  const users=getUsers(); const id=b5.id||('B5-'+ph.slice(-6));
-  users[id]={...b5,id,phone:ph,memberType:'B5'};
+  const users=getUsers();
+  const id=found.id||('B5-'+String(b.phone||b.mobile||login).slice(-6));
+  // Always take the current B5 coin balance from the B5 record so future admin/B5 balance updates appear on login.
+  const coins=Number(b.coins||b.coinBalance||b.magizhCoins||0)||0;
+  const phone=String(b.phone||b.mobile||b.mobileNumber||b.registeredMobile||'');
+  const user={...b,id,phone,memberType:'B5',coins,password:b.password};
+  users[id]=user;
   localStorage.setItem('magizhUsers',JSON.stringify(users));
-  sessionStorage.setItem('magizhCurrentUser',JSON.stringify(users[id]));
+  sessionStorage.setItem('magizhCurrentUser',JSON.stringify(user));
   sessionStorage.setItem('magizhCurrentUserId',id);
-  localStorage.setItem('magizhCoinWallet',String(Number(users[id].coins||0)));
-  updateAllCoinDisplays(Number(users[id].coins||0)); syncCustomerHeader(); closeRegister();
-  alert('B5 login successful.');
+  localStorage.setItem('magizhCoinWallet',String(coins));
+  updateAllCoinDisplays(coins);
+  syncCustomerHeader();
+  closeRegister();
+  if(status)status.textContent='';
 }
 async function completePaymentAndPlace(event){
   if(event){
