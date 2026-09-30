@@ -193,7 +193,26 @@ function searchUserForCoins(){
       <button class="primary" onclick="addCoinsToFoundUser('${esc(found.id)}')" style="margin-top:10px">
         Add Coins
       </button>
+
+      <label style="margin-top:14px">New / Reset Password</label>
+      <input id="resetUserPassword" type="password" autocomplete="new-password" placeholder="Minimum 6 characters">
+      <button class="secondary" onclick="resetCustomerPassword('${esc(found.id)}')" style="margin-top:10px">Reset Customer Password</button>
+      <div class="muted" style="margin-top:7px">Give this new password to the customer after they contact Admin on WhatsApp.</div>
     </div>`;
+}
+
+function resetCustomerPassword(id){
+  const next=String(document.getElementById('resetUserPassword')?.value||'');
+  if(next.length<6){alert('Password must be at least 6 characters.');return}
+  const u=JSON.parse(localStorage.getItem('magizhUsers')||'{}');
+  if(!u[id]){alert('Customer not found.');return}
+  u[id].password=next;
+  u[id].passwordUpdatedAt=new Date().toISOString();
+  localStorage.setItem('magizhUsers',JSON.stringify(u));
+  alert('Customer password reset successfully. Share the new password with the customer.');
+  const input=document.getElementById('resetUserPassword'); if(input)input.value='';
+  renderUsers();
+  setTimeout(()=>{const search=document.getElementById('userSearch');if(search){search.value=id;searchUserForCoins();}},0);
 }
 
 function addCoinsToFoundUser(id){
@@ -232,7 +251,7 @@ function addCoinsToFoundUser(id){
 
 function renderSettings(){const s=settings();document.getElementById('settings').innerHTML=`<div class="panel"><h2>Store & Payment Settings</h2><div class="grid"><div><label>Minimum Order Value (₹)</label><input id="minVal" type="number" min="0" value="${s.min}"><div class="muted">Set 0 for no minimum order.</div></div><div><label>Courier Charge (₹)</label><input id="courierVal" type="number" min="0" value="${s.courier}"></div><div><label>Shop UPI ID</label><input id="upiVal" value="${esc(s.upi)}"></div><div><label>Delivery Estimate</label><input value="7–10 days" disabled></div></div><button class="primary" onclick="saveSettings()">Save Settings</button></div>`}
 function saveSettings(){const s=settings();s.min=Number(minVal.value)||0;s.courier=Number(courierVal.value)||0;s.upi=upiVal.value.trim();save('magizhSettings',s);alert('Settings saved.')}
-function renderSocial(){const s=settings();document.getElementById('social').innerHTML=`<div class="panel"><h2>Social & Contact</h2><label>Address</label><textarea id="addressVal" rows="3">${esc(s.address)}</textarea><label>Instagram URL</label><input id="instagramVal" value="${esc(s.instagram)}"><label>Facebook URL</label><input id="facebookVal" value="${esc(s.facebook)}"><label>WhatsApp Link</label><input id="whatsappVal" value="${esc(s.whatsapp)}"><label>Phone Number</label><input id="phoneVal" value="${esc(s.phone||'')}"><label>Business Hours</label><input id="hoursVal" value="${esc(s.hours||'')}"><button class="primary" onclick="saveSocial()" style="margin-top:10px">Save Contact & Social</button></div>`}
+function renderSocial(){const s=settings();document.getElementById('social').innerHTML=`<div class="panel"><h2>Social & Contact</h2><label>Address</label><textarea id="addressVal" rows="3">${esc(s.address)}</textarea><label>Instagram URL</label><input id="instagramVal" value="${esc(s.instagram)}"><label>Facebook URL</label><input id="facebookVal" value="${esc(s.facebook)}"><label>WhatsApp Link / Admin WhatsApp Number</label><input id="whatsappVal" value="${esc(s.whatsapp)}" placeholder="Example: 919092669157 or https://wa.me/919092669157"><div class="muted">Customers will use this number when they tap Forgot Password.</div><label>Phone Number</label><input id="phoneVal" value="${esc(s.phone||'')}"><label>Business Hours</label><input id="hoursVal" value="${esc(s.hours||'')}"><button class="primary" onclick="saveSocial()" style="margin-top:10px">Save Contact & Social</button></div>`}
 function saveSocial(){const s=settings();s.address=addressVal.value.trim();s.instagram=instagramVal.value.trim();s.facebook=facebookVal.value.trim();s.whatsapp=whatsappVal.value.trim();s.phone=phoneVal.value.trim();s.hours=hoursVal.value.trim();save('magizhSettings',s);alert('Contact & social details saved.')}
 function getAdminPassword(){return localStorage.getItem('magizhAdminPassword')||'123456'}
 function renderSecurity(){

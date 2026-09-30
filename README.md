@@ -32,3 +32,10 @@ Password: `123456`
 
 ## Important
 Upload/replace the complete files from this ZIP together. Do not mix the old `index.html`, `admin.html`, `server.js`, or `server-sync.js` with these files.
+
+
+## Password recovery
+- Customer login uses Mobile Number + Password; OTP is not used in this version.
+- Forgot Password opens WhatsApp to the Admin contact configured in Admin → Social & Contact.
+- Admin can search the customer in Users & Coins and use Reset Customer Password.
+- This test/demo stores the password in the synced user record; before production, move authentication/password hashing to the server.

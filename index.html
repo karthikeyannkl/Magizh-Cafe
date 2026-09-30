@@ -85,17 +85,31 @@ body{margin:0 auto}
     <span class="ey">CUSTOMER LOGIN</span>
     <h2>Welcome to Magizh Cafe</h2>
     <p style="font-size:10px;color:#786b5e;line-height:1.5">
-      Login with your registered mobile number. OTP verification is required.
+      Login with your registered mobile number and password.
     </p>
     <input id="loginPhone" inputmode="numeric" maxlength="10" placeholder="Mobile Number">
-    <input id="loginOtp" inputmode="numeric" maxlength="6" placeholder="Enter OTP" style="display:none">
-    <button id="sendOtpBtn" onclick="sendDemoOtp()">Send OTP</button>
-    <button id="verifyOtpBtn" onclick="verifyDemoOtp()" style="display:none">Verify OTP & Login</button>
+    <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Password">
+    <button id="passwordLoginBtn" onclick="loginWithPassword()">Login</button>
+    <button class="secondaryLogin" onclick="openForgotPassword()">Forgot Password?</button>
     <div class="loginstatus" id="loginStatus"></div>
     <div style="text-align:center;margin-top:14px;font-size:10px;color:#786b5e">
       New to Magizh Cafe?
     </div>
     <button class="secondaryLogin" onclick="openRegister()">Register</button>
+  </div>
+</div>
+
+<div class="loginmodal" id="forgotPasswordModal">
+  <div class="loginbox">
+    <button class="close" onclick="closeForgotPassword()">×</button>
+    <span class="ey">PASSWORD HELP</span>
+    <h2>Forgot Password?</h2>
+    <p style="font-size:11px;color:#786b5e;line-height:1.6">
+      Enter your registered mobile number. WhatsApp Admin and ask for a password reset. Admin can change your password from the Admin panel.
+    </p>
+    <input id="forgotPhone" inputmode="numeric" maxlength="10" placeholder="Registered Mobile Number">
+    <button onclick="requestPasswordResetWhatsApp()">💬 WhatsApp Admin</button>
+    <div class="loginstatus" id="forgotStatus"></div>
   </div>
 </div>
 
@@ -120,9 +134,11 @@ body{margin:0 auto}
     <input id="regName" placeholder="Full Name">
     <input id="regMobile" inputmode="numeric" maxlength="10" placeholder="Mobile Number">
     <input id="regAge" inputmode="numeric" maxlength="3" placeholder="Age">
+    <input id="regPassword" type="password" autocomplete="new-password" placeholder="Create Password (minimum 6 characters)">
+    <input id="regPassword2" type="password" autocomplete="new-password" placeholder="Confirm Password">
     <textarea id="regAddress" placeholder="Address" style="width:100%;box-sizing:border-box;padding:12px;border:1px solid #d8c9b7;border-radius:10px;margin:6px 0;min-height:75px;font-family:inherit"></textarea>
     <button onclick="registerNewUserFinal()">Register & Continue</button>
-    <div class="loginstatus">After registration, use your mobile number and OTP to log in.</div>
+    <div class="loginstatus">After registration, use your mobile number and password to log in.</div>
   </div>
 </div>
 
@@ -132,12 +148,12 @@ body{margin:0 auto}
     <span class="ey">B5 USER</span>
     <h2>B5 Member Login</h2>
     <p style="font-size:10px;color:#786b5e;line-height:1.5">
-      Enter the mobile number registered in your B5 account.
+      Enter the mobile number and password registered in your B5 account.
     </p>
     <input id="b5RegMobile" inputmode="numeric" maxlength="10" placeholder="B5 Registered Mobile Number">
-    <button id="b5SendOtpBtn" onclick="sendB5RegisterOtp()">Send OTP</button>
-    <input id="b5RegOtp" inputmode="numeric" maxlength="6" placeholder="Enter OTP" style="display:none">
-    <button id="b5VerifyBtn" onclick="verifyB5RegisterOtp()" style="display:none">Verify & Continue</button>
+    <input id="b5RegPassword" type="password" autocomplete="current-password" placeholder="Password">
+    <button onclick="loginB5WithPassword()">Login</button>
+    <button class="secondaryLogin" onclick="openForgotPassword()">Forgot Password?</button>
     <div class="loginstatus" id="b5RegStatus"></div>
   </div>
 </div>
@@ -482,12 +498,58 @@ function closeRegister(){['registerModal','newUserRegisterModal','b5RegisterModa
 function openNewUserRegister(){document.getElementById('registerModal').style.display='none';document.getElementById('newUserRegisterModal').style.display='flex'}
 function openB5Register(){document.getElementById('registerModal').style.display='none';document.getElementById('b5RegisterModal').style.display='flex'}
 
-let demoOtp='';
+function getAdminWhatsAppLink(message){
+  let settings={}; try{settings=JSON.parse(localStorage.getItem('magizhSettings')||'{}')}catch(e){}
+  let raw=String(settings.whatsapp||settings.phone||'').trim();
+  if(!raw){return ''}
+  if(/^https?:\/\//i.test(raw)){
+    const sep=raw.includes('?')?'&':'?';
+    return raw+sep+'text='+encodeURIComponent(message);
+  }
+  const digits=raw.replace(/\D/g,'');
+  if(!digits)return '';
+  const intl=digits.length===10?'91'+digits:digits;
+  return 'https://wa.me/'+intl+'?text='+encodeURIComponent(message);
+}
+function openForgotPassword(){
+  closeLogin();
+  const m=document.getElementById('forgotPasswordModal'); if(m)m.style.display='flex';
+  const p=document.getElementById('forgotPhone'); if(p)p.focus();
+}
+function closeForgotPassword(){const m=document.getElementById('forgotPasswordModal');if(m)m.style.display='none'}
+function requestPasswordResetWhatsApp(){
+  const ph=document.getElementById('forgotPhone')?.value.trim()||'';
+  const status=document.getElementById('forgotStatus');
+  if(!/^\d{10}$/.test(ph)){if(status)status.textContent='Please enter your registered 10-digit mobile number.';return}
+  const found=findUserByPhone(ph);
+  const id=found?.id||('MC-'+ph.slice(-6));
+  const message='Hello Magizh Cafe Admin, I forgot my password. Please reset my password. User ID: '+id+' | Mobile: '+ph;
+  const link=getAdminWhatsAppLink(message);
+  if(!link){if(status)status.textContent='Admin WhatsApp number is not configured yet. Please ask Admin to add it in Admin → Social & Contact.';return}
+  window.open(link,'_blank','noopener');
+  if(status)status.textContent='WhatsApp opened. Please send the message to Admin. Admin can reset your password from the Users & Coins section.';
+}
+function loginWithPassword(){
+  const ph=document.getElementById('loginPhone').value.trim();
+  const pw=document.getElementById('loginPassword').value;
+  const status=document.getElementById('loginStatus');
+  if(!/^\d{10}$/.test(ph)){status.textContent='Please enter a valid 10-digit mobile number.';return}
+  if(!pw){status.textContent='Please enter your password.';return}
+  const found=findUserByPhone(ph);
+  if(!found){status.textContent='Mobile number not registered. Please use Register below first.';return}
+  if(!found.user.password){status.textContent='Password is not set for this account. Please use Forgot Password and contact Admin.';return}
+  if(String(found.user.password)!==pw){status.textContent='Incorrect password. Use Forgot Password if you need help.';return}
+  sessionStorage.setItem('magizhCurrentUser',JSON.stringify(found.user));
+  sessionStorage.setItem('magizhCurrentUserId',found.id);
+  localStorage.setItem('magizhCoinWallet',String(Number(found.user.coins||0)));
+  updateAllCoinDisplays(Number(found.user.coins||0));
+  syncCustomerHeader(); closeLogin();
+  alert('Login successful. Welcome to Magizh Cafe!');
+}
 function findUserByPhone(ph){
   const users=getUsers();
   const id=Object.keys(users).find(k=>String(users[k].phone||'')===String(ph));
   if(id)return {id,user:users[id]};
-  // Migrate a legacy demo/current account so the previously supplied test login still works.
   try{
     const legacy=JSON.parse(localStorage.getItem('magizhCurrentUser')||'null');
     const legacyId=localStorage.getItem('magizhCurrentUserId')||legacy?.id;
@@ -500,100 +562,45 @@ function findUserByPhone(ph){
   }catch(e){}
   return null;
 }
-function sendDemoOtp(){
-  const ph=document.getElementById('loginPhone').value.trim();
-  if(!/^\d{10}$/.test(ph)){alert('Please enter a valid 10-digit mobile number.');return}
-  const found=findUserByPhone(ph);
-  if(!found){
-    document.getElementById('loginStatus').textContent='Mobile number not registered. Please use Register below first.';
-    return;
-  }
-  demoOtp=String(Math.floor(100000+Math.random()*900000));
-  document.getElementById('loginOtp').style.display='block';
-  document.getElementById('verifyOtpBtn').style.display='block';
-  document.getElementById('sendOtpBtn').textContent='Resend OTP';
-  document.getElementById('loginStatus').textContent='Demo OTP: '+demoOtp+' (production SMS OTP will be connected to the server).';
-}
-function verifyDemoOtp(){
-  const ph=document.getElementById('loginPhone').value.trim(), otp=document.getElementById('loginOtp').value.trim();
-  if(otp!==demoOtp){alert('Invalid OTP.');return}
-  const found=findUserByPhone(ph);
-  if(!found){alert('Account not found. Please register first.');return}
-  sessionStorage.setItem('magizhCurrentUser',JSON.stringify(found.user));
-  sessionStorage.setItem('magizhCurrentUserId',found.id);
-  localStorage.setItem('magizhCoinWallet',String(Number(found.user.coins||0)));
-  updateAllCoinDisplays(Number(found.user.coins||0));
-  syncCustomerHeader();
-  closeLogin();
-  alert('Login successful. Welcome to Magizh Cafe!');
-}
 function registerNewUserFinal(){
   const name=document.getElementById('regName').value.trim();
   const phone=document.getElementById('regMobile').value.trim();
   const age=document.getElementById('regAge').value.trim();
   const address=document.getElementById('regAddress').value.trim();
-  if(!name||!/^[0-9]{10}$/.test(phone)||!age||!address){
-    alert('Please complete Name, Mobile Number, Age and Address.');
-    return;
-  }
+  const password=document.getElementById('regPassword').value;
+  const password2=document.getElementById('regPassword2').value;
+  if(!name||!/^[0-9]{10}$/.test(phone)||!age||!address){alert('Please complete Name, Mobile Number, Age and Address.');return}
+  if(password.length<6){alert('Password must be at least 6 characters.');return}
+  if(password!==password2){alert('Password and confirmation do not match.');return}
   const users=getUsers();
   const existing=Object.keys(users).find(k=>String(users[k].phone||'')===phone);
-  if(existing){
-    alert('This mobile number is already registered. Please login with OTP.');
-    return;
-  }
-
+  if(existing){alert('This mobile number is already registered. Please use Login or Forgot Password.');return}
   const id='MC-'+phone.slice(-6);
-
-  // NEW USER: no welcome/free coins.
-  users[id]={
-    id,
-    name,
-    phone,
-    age,
-    address,
-    coins:0,
-    memberType:'Normal',
-    registeredAt:new Date().toISOString()
-  };
-
+  users[id]={id,name,phone,age,address,password,coins:0,memberType:'Normal',registeredAt:new Date().toISOString()};
   localStorage.setItem('magizhUsers',JSON.stringify(users));
   sessionStorage.setItem('magizhCurrentUser',JSON.stringify(users[id]));
   sessionStorage.setItem('magizhCurrentUserId',id);
   localStorage.setItem('magizhCoinWallet','0');
-
-  updateAllCoinDisplays(0);
-  syncCustomerHeader();
-  closeRegister();
-
-  alert('Registration successful. Your account has been created with 0 Coins.');
+  updateAllCoinDisplays(0); syncCustomerHeader(); closeRegister();
+  alert('Registration successful. Your password has been saved.');
 }
-let b5DemoOtp='';
-function sendB5RegisterOtp(){
+function loginB5WithPassword(){
   const ph=document.getElementById('b5RegMobile').value.trim();
-  if(!/^\d{10}$/.test(ph)){alert('Please enter a valid 10-digit mobile number.');return}
-  b5DemoOtp=String(Math.floor(100000+Math.random()*900000));
-  document.getElementById('b5RegOtp').style.display='block';
-  document.getElementById('b5VerifyBtn').style.display='block';
-  document.getElementById('b5SendOtpBtn').textContent='Resend OTP';
-  document.getElementById('b5RegStatus').textContent='Demo OTP: '+b5DemoOtp+' (production B5 server OTP will be connected here).';
-}
-function verifyB5RegisterOtp(){
-  const ph=document.getElementById('b5RegMobile').value.trim(), otp=document.getElementById('b5RegOtp').value.trim();
-  if(otp!==b5DemoOtp){alert('Invalid OTP.');return}
-  // Demo placeholder for the future B5 API: if a B5 record is already stored locally, use it.
-  let b5=null; try{b5=JSON.parse(localStorage.getItem('magizhB5_'+ph)||'null')}catch(e){}
-  if(!b5){
-    alert('B5 account lookup is ready for server connection, but this demo has no B5 server record for this mobile number yet.');
-    return;
+  const pw=document.getElementById('b5RegPassword').value;
+  const status=document.getElementById('b5RegStatus');
+  if(!/^\d{10}$/.test(ph)){status.textContent='Please enter a valid 10-digit mobile number.';return}
+  let found=findUserByPhone(ph);
+  if(!found){
+    let b5=null; try{b5=JSON.parse(localStorage.getItem('magizhB5_'+ph)||'null')}catch(e){}
+    if(b5){const users=getUsers();const id=b5.id||('B5-'+ph.slice(-6));users[id]={...b5,id,phone:ph,memberType:'B5'};localStorage.setItem('magizhUsers',JSON.stringify(users));found={id,user:users[id]}}
   }
-  const users=getUsers(); const id=b5.id||('B5-'+ph.slice(-6));
-  users[id]={...b5,id,phone:ph,memberType:'B5'};
-  localStorage.setItem('magizhUsers',JSON.stringify(users));
-  sessionStorage.setItem('magizhCurrentUser',JSON.stringify(users[id]));
-  sessionStorage.setItem('magizhCurrentUserId',id);
-  localStorage.setItem('magizhCoinWallet',String(Number(users[id].coins||0)));
-  updateAllCoinDisplays(Number(users[id].coins||0)); syncCustomerHeader(); closeRegister();
+  if(!found){status.textContent='B5 account not found. Please contact Admin.';return}
+  if(!found.user.password){status.textContent='Password is not set for this B5 account. Please use Forgot Password.';return}
+  if(String(found.user.password)!==pw){status.textContent='Incorrect password. Use Forgot Password if needed.';return}
+  sessionStorage.setItem('magizhCurrentUser',JSON.stringify(found.user));
+  sessionStorage.setItem('magizhCurrentUserId',found.id);
+  localStorage.setItem('magizhCoinWallet',String(Number(found.user.coins||0)));
+  updateAllCoinDisplays(Number(found.user.coins||0)); syncCustomerHeader(); closeRegister();
   alert('B5 login successful.');
 }
 async function completePaymentAndPlace(event){
