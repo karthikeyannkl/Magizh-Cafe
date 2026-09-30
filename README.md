@@ -46,3 +46,9 @@ The customer intro video is served by `/login-intro.mp4` with HTTP Range support
 
 ## Customer password reset
 Customer Login uses Mobile Number + Password. Forgot Password opens a WhatsApp reset request using the Admin WhatsApp value in Admin → Social & Contact. Admin → Users & Coins contains the Customer Password Reset control.
+
+
+## Login gate fix
+- Customer page is fully covered until the customer logs in. The home page is not visible behind the initial login screen.
+- The intro video is still attempted first. If a browser/webview blocks autoplay or video playback, the login screen opens automatically instead of exposing the home page.
+- Forgot Password and Register remain available from the login gate.

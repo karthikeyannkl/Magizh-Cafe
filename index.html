@@ -17,7 +17,7 @@
 .couponbtn.used{background:#789b58;color:#fff}
 .paytotal{border-top:1px solid #eadfce;margin-top:9px;padding-top:9px;font-size:15px}
 .siteFooter{padding:22px 14px 90px;background:#3a291f;color:#fffdf7;font-size:10px;line-height:1.6}.siteFooter .socials{display:flex;gap:10px;margin-top:10px}.siteFooter a{color:#f1b56f;text-decoration:none}.brandWrap{display:flex;align-items:center}.paynote{font-size:9px;color:#786b5e;line-height:1.5;margin-top:7px}
-.loginbtn{border:1px solid #789b58;background:#fff;border-radius:18px;padding:8px 10px;font-size:10px;font-weight:bold;color:#536c3e;margin-right:7px}.topActions{display:flex;align-items:center}.loginmodal{display:none;position:fixed;inset:0;background:#0008;z-index:100;align-items:center;justify-content:center;padding:18px}.loginbox{width:100%;max-width:390px;background:#fffdf7;border-radius:22px;padding:22px;box-shadow:0 15px 50px #0004}.loginbox h2{font:27px Georgia;margin:4px 0 8px}.loginbox input{width:100%;padding:12px;border:1px solid #d8c9b7;border-radius:10px;margin:6px 0}.loginbox button{width:100%;padding:12px;border-radius:22px;border:0;background:#e9792d;color:#fff;font-weight:bold;margin-top:8px}.loginbox .secondaryLogin{background:#fff;color:#3a291f;border:1px solid #e9792d}.loginstatus{font-size:10px;color:#6e6156;line-height:1.5;margin-top:8px}.loggedName{font-size:9px;color:#536c3e;max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.loginbtn{border:1px solid #789b58;background:#fff;border-radius:18px;padding:8px 10px;font-size:10px;font-weight:bold;color:#536c3e;margin-right:7px}.topActions{display:flex;align-items:center}.loginmodal{display:none;position:fixed;inset:0;background:#f5ead8;z-index:2147483646;align-items:center;justify-content:center;padding:18px}.loginbox{width:100%;max-width:390px;background:#fffdf7;border-radius:22px;padding:22px;box-shadow:0 15px 50px #0004}.loginbox h2{font:27px Georgia;margin:4px 0 8px}.loginbox input{width:100%;padding:12px;border:1px solid #d8c9b7;border-radius:10px;margin:6px 0}.loginbox button{width:100%;padding:12px;border-radius:22px;border:0;background:#e9792d;color:#fff;font-weight:bold;margin-top:8px}.loginbox .secondaryLogin{background:#fff;color:#3a291f;border:1px solid #e9792d}.loginstatus{font-size:10px;color:#6e6156;line-height:1.5;margin-top:8px}.loggedName{font-size:9px;color:#536c3e;max-width:100px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 </style>
 <style>
 .topActions{display:flex!important;align-items:center;gap:6px;flex-wrap:nowrap}
@@ -64,10 +64,20 @@ body{margin:0 auto}
 </style>
 
 <style id="magizhLoginSplashCSS">
-#magizhLoginSplash{position:fixed;inset:0;z-index:999999;background:#f5ead8;display:flex;align-items:center;justify-content:center;overflow:hidden;}
+/* Login gate: before authentication the customer page is completely covered. */
+#magizhLoginSplash{position:fixed;inset:0;z-index:2147483647;background:#f5ead8;display:flex;align-items:center;justify-content:center;overflow:auto;}
 #magizhLoginSplash video{width:100%;height:100%;object-fit:cover;display:block;background:#f5ead8;}
-#magizhLoginSplash.magizhSplashHide{opacity:0;pointer-events:none;transition:opacity .35s ease;}
+#magizhLoginSplash.magizhSplashHide{display:none!important;}
 body.magizhSplashActive{overflow:hidden;}
+#magizhLoginSplash.magizhLoginOnly{padding:18px;box-sizing:border-box;}
+#magizhLoginSplash .magizhGateLogin{width:min(100%,620px);max-height:calc(100vh - 36px);overflow:auto;background:#fffdf8;border-radius:30px;padding:28px 24px;box-sizing:border-box;box-shadow:0 20px 70px rgba(55,39,24,.18);}
+#magizhLoginSplash .magizhGateClose{display:none!important;}
+#magizhLoginSplash .magizhGateLogin h2{font-family:Georgia,serif;font-size:clamp(34px,8vw,52px);line-height:1.08;color:#3d2b20;margin:12px 0 22px;}
+#magizhLoginSplash .magizhGateLogin .ey{font-size:15px;letter-spacing:3px;font-weight:800;color:#d47a35;}
+#magizhLoginSplash .magizhGateLogin p{font-size:16px!important;line-height:1.5!important;color:#786b5e;margin:0 0 18px;}
+#magizhLoginSplash .magizhGateLogin input{width:100%;box-sizing:border-box;font-size:18px!important;padding:16px 18px!important;border:1px solid #d9cdbd;border-radius:16px;margin:7px 0;}
+#magizhLoginSplash .magizhGateLogin button{width:100%;font-size:18px!important;font-weight:700;padding:15px 18px!important;border-radius:16px;margin-top:9px;}
+#magizhLoginSplash .magizhGateLogin .secondaryLogin{background:#fff;border:1.5px solid #df8b4c;color:#3d2b20;}
 </style>
 </head><body>
 
@@ -103,7 +113,7 @@ body.magizhSplashActive{overflow:hidden;}
     </p>
     <input id="loginPhone" inputmode="numeric" maxlength="10" autocomplete="tel" placeholder="Mobile Number">
     <input id="loginPassword" type="password" autocomplete="current-password" placeholder="Password">
-    <button onclick="passwordLogin()">Login</button>
+    <button id="loginSubmitBtn" type="button" onclick="passwordLogin()" style="display:block!important;width:100%!important;background:#e9792d!important;color:#fff!important;border:0!important;padding:14px 18px!important;border-radius:22px!important;font-size:18px!important;font-weight:800!important;min-height:52px!important;opacity:1!important;visibility:visible!important;">Login</button>
     <button class="secondaryLogin" type="button" onclick="openForgotPassword()" style="margin-top:8px">Forgot Password?</button>
     <div class="loginstatus" id="loginStatus"></div>
     <div style="text-align:center;margin-top:14px;font-size:10px;color:#786b5e">
@@ -839,30 +849,74 @@ window.addEventListener('magizhServerSync',function(){
 
 <script id="magizhLoginSplashJS">
 (function(){
-  function showLoginAfterIntro(){
+  function openGateLogin(){
     var splash=document.getElementById('magizhLoginSplash');
     var video=document.getElementById('magizhLoginIntroVideo');
     if(!splash)return;
-    splash.classList.add('magizhSplashHide');
-    document.body.classList.remove('magizhSplashActive');
-    setTimeout(function(){
-      splash.remove();
-      try{
-        var u=JSON.parse(sessionStorage.getItem('magizhCurrentUser')||'null');
-        if(!u && typeof openLogin==='function') openLogin();
-      }catch(e){ if(typeof openLogin==='function') openLogin(); }
-    },360);
-    if(video){try{video.pause();}catch(e){}}
+    try{ if(video) video.pause(); }catch(e){}
+    splash.classList.add('magizhLoginOnly');
+    splash.innerHTML=`<div class="magizhGateLogin" role="dialog" aria-label="Customer Login">
+      <span class="ey">CUSTOMER LOGIN</span>
+      <h2>Welcome to Magizh Cafe</h2>
+      <p>Login with your registered mobile number and password.</p>
+      <input id="gateLoginPhone" inputmode="numeric" maxlength="10" autocomplete="tel" placeholder="Mobile Number">
+      <input id="gateLoginPassword" type="password" autocomplete="current-password" placeholder="Password">
+      <button id="gateLoginSubmitBtn" type="button" onclick="gatePasswordLogin()" style="display:block!important;width:100%!important;background:#e9792d!important;color:#fff!important;border:0!important;padding:14px 18px!important;border-radius:22px!important;font-size:18px!important;font-weight:800!important;min-height:52px!important;opacity:1!important;visibility:visible!important;">Login</button>
+      <button class="secondaryLogin" type="button" onclick="gateForgotPassword()">Forgot Password?</button>
+      <div id="gateLoginStatus" class="loginstatus"></div>
+      <div style="text-align:center;margin-top:14px;font-size:14px;color:#786b5e">New to Magizh Cafe?</div>
+      <button class="secondaryLogin" type="button" onclick="gateRegister()">Register</button>
+    </div>`;
+    var p=document.getElementById('gateLoginPhone'); if(p) p.focus();
   }
+  window.gatePasswordLogin=function(){
+    var ph=(document.getElementById('gateLoginPhone')?.value||'').trim();
+    var pw=document.getElementById('gateLoginPassword')?.value||'';
+    var st=document.getElementById('gateLoginStatus');
+    if(!/^\d{10}$/.test(ph)){if(st)st.textContent='Please enter a valid 10-digit mobile number.';return}
+    if(!pw){if(st)st.textContent='Please enter your password.';return}
+    var found=typeof findUserByPhone==='function'?findUserByPhone(ph):null;
+    if(!found){if(st)st.textContent='Mobile number not registered. Please use Register below first.';return}
+    if(String(found.user.password||'')!==pw){if(st)st.textContent='Incorrect password. Please try again or use Forgot Password.';return}
+    sessionStorage.setItem('magizhCurrentUser',JSON.stringify(found.user));
+    sessionStorage.setItem('magizhCurrentUserId',found.id);
+    localStorage.setItem('magizhCoinWallet',String(Number(found.user.coins||0)));
+    if(typeof updateAllCoinDisplays==='function')updateAllCoinDisplays(Number(found.user.coins||0));
+    if(typeof syncCustomerHeader==='function')syncCustomerHeader();
+    var splash=document.getElementById('magizhLoginSplash');
+    if(splash)splash.remove();
+    document.body.classList.remove('magizhSplashActive');
+  };
+  window.gateForgotPassword=function(){
+    var splash=document.getElementById('magizhLoginSplash');
+    if(splash)splash.remove();
+    document.body.classList.remove('magizhSplashActive');
+    if(typeof openForgotPassword==='function')openForgotPassword();
+  };
+  window.gateRegister=function(){
+    var splash=document.getElementById('magizhLoginSplash');
+    if(splash)splash.remove();
+    document.body.classList.remove('magizhSplashActive');
+    if(typeof openRegister==='function')openRegister();
+  };
+  function showLoginAfterIntro(){openGateLogin();}
   function initMagizhLoginSplash(){
     var splash=document.getElementById('magizhLoginSplash');
     var video=document.getElementById('magizhLoginIntroVideo');
     if(!splash||!video)return;
     document.body.classList.add('magizhSplashActive');
+    try{
+      var u=JSON.parse(sessionStorage.getItem('magizhCurrentUser')||'null');
+      if(u){splash.remove();document.body.classList.remove('magizhSplashActive');return;}
+    }catch(e){}
     video.addEventListener('ended',showLoginAfterIntro,{once:true});
-    video.addEventListener('error',function(){setTimeout(showLoginAfterIntro,300);},{once:true});
+    video.addEventListener('error',function(){setTimeout(showLoginAfterIntro,500);},{once:true});
     var playPromise=video.play();
-    if(playPromise&&playPromise.catch)playPromise.catch(function(){setTimeout(showLoginAfterIntro,1000);});
+    if(playPromise&&playPromise.catch)playPromise.catch(function(){setTimeout(showLoginAfterIntro,900);});
+    /* Safety fallback: even if an embedded browser refuses video autoplay, login still opens. */
+    setTimeout(function(){
+      if(document.getElementById('magizhLoginIntroVideo') && document.getElementById('magizhLoginSplash') && !document.getElementById('magizhLoginSplash').classList.contains('magizhLoginOnly')) openGateLogin();
+    },12000);
   }
   if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',initMagizhLoginSplash);
   else initMagizhLoginSplash();
