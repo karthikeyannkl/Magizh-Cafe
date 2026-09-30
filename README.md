@@ -39,3 +39,10 @@ Upload/replace the complete files from this ZIP together. Do not mix the old `in
 - Forgot Password opens WhatsApp to the Admin contact configured in Admin → Social & Contact.
 - Admin can search the customer in Users & Coins and use Reset Customer Password.
 - This test/demo stores the password in the synced user record; before production, move authentication/password hashing to the server.
+
+
+## Login Splash
+The customer intro video is served by `/login-intro.mp4` with HTTP Range support so mobile browsers can play the MP4 reliably.
+
+## Customer password reset
+Customer Login uses Mobile Number + Password. Forgot Password opens a WhatsApp reset request using the Admin WhatsApp value in Admin → Social & Contact. Admin → Users & Coins contains the Customer Password Reset control.
