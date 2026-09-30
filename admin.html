@@ -112,39 +112,7 @@ function deleteProductByKey(encodedKey){
 function renderCategories(){const a=cats();document.getElementById('categories').innerHTML=`<div class="panel"><h2>Category Add / Delete</h2><div class="row"><input id="newCat" placeholder="New category name"><button class="primary" onclick="addCat()">Add Category</button></div></div><div class="panel">${a.map(c=>`<div class="product"><div class="pill">${esc(c)}</div><div></div><button class="danger" onclick="deleteCat('${esc(c)}')">Delete</button></div>`).join('')}</div>`}
 function addCat(){const n=newCat.value.trim();if(!n)return;const a=cats();if(a.some(x=>x.toLowerCase()===n.toLowerCase()))return alert('Category already exists.');a.push(n);save('magizhCategories',a);renderCategories()}
 function deleteCat(n){if(!confirm('Delete category '+n+'? Products in this category will remain until you edit or delete them.'))return;const a=cats().filter(x=>x!==n);save('magizhCategories',a);renderCategories()}
-function renderUsers(){
-  const u=JSON.parse(localStorage.getItem('magizhUsers')||'{}');
-
-  document.getElementById('users').innerHTML=
-    `<div class="panel">
-      <h2>Users & Customer Password Reset</h2>
-      <div class="muted">Search a registered customer by User ID or Mobile Number. If a customer sends a Forgot Password request on WhatsApp, use this section to set a new password.</div>
-
-      <label>User ID / Mobile Number</label>
-      <input id="userSearch" placeholder="MC-123456 or 9876543210">
-
-      <button class="secondary" onclick="searchUserForCoins()" style="margin-top:10px">
-        Search Customer
-      </button>
-
-      <div id="coinUserResult" style="margin-top:12px"></div>
-    </div>
-
-    <div class="panel">
-      <h2>Registered Users</h2>
-      ${Object.values(u).map(x=>`
-        <div class="product">
-          <div>
-            <b>${esc(x.id)}</b><br>
-            ${esc(x.name||'Customer')}<br>
-            <span class="muted">${esc(x.phone||'')}</span>
-          </div>
-          <div>🪙 <b>${Number(x.coins)||0}</b></div>
-          <div></div>
-        </div>
-      `).join('')||'<div class="empty">No users yet.</div>'}
-    </div>`;
-}
+function renderUsers(){const u=JSON.parse(localStorage.getItem('magizhUsers')||'{}');document.getElementById('users').innerHTML=`<div class="panel"><h2>Users & Customer Password Reset</h2><div class="muted">Search a registered customer by User ID or Mobile Number. Use this section to set a new password after a Forgot Password request.</div><label>User ID / Mobile Number</label><input id="userSearch" placeholder="MC-123456 or 9876543210"><button class="secondary" onclick="searchUserForCoins()" style="margin-top:10px">Search Customer</button><div id="coinUserResult" style="margin-top:12px"></div></div><div class="panel"><h2>Registered Users</h2>${Object.values(u).map(x=>`<div class="product"><div><b>${esc(x.id)}</b><br>${esc(x.name||'Customer')}<br><span class="muted">${esc(x.phone||'')}</span></div><div>🪙 <b>${Number(x.coins)||0}</b></div><div></div></div>`).join('')||'<div class="empty">No users yet.</div>'}</div>`;}
 
 function findAdminUser(query){
   const q=String(query||'').trim().toLowerCase();
@@ -185,19 +153,12 @@ function searchUserForCoins(){
       User ID: <b>${esc(found.id)}</b><br>
       Mobile: <b>${esc(u.phone||'')}</b><br>
       Account: <b>${esc(u.memberType||'Normal')}</b><br>
-      Current Coins: 🪙 <b>${Number(u.coins)||0}</b>
+      Current Coins: 🪙 <b>${Number(u.coins)||0}</b><br><br><label>New / Reset Password</label><input id="resetUserPassword" type="password" autocomplete="new-password" placeholder="Minimum 6 characters"><button class="secondary" onclick="resetCustomerPassword('${found.id}')" style="margin-top:8px">Reset Customer Password</button>
 
-      <label style="margin-top:12px">New / Reset Password</label>
-      <input id="resetUserPassword" type="password" autocomplete="new-password" placeholder="Minimum 6 characters">
-
-      <button class="primary" onclick="resetCustomerPassword('${esc(found.id)}')" style="margin-top:10px">
-        Reset Customer Password
-      </button>
-
-      <label style="margin-top:16px">Coins to Add</label>
+      <label style="margin-top:12px">Coins to Add</label>
       <input id="ucoins" type="number" min="0" value="0">
 
-      <button class="secondary" onclick="addCoinsToFoundUser('${esc(found.id)}')" style="margin-top:10px">
+      <button class="primary" onclick="addCoinsToFoundUser('${esc(found.id)}')" style="margin-top:10px">
         Add Coins
       </button>
     </div>`;
@@ -237,22 +198,12 @@ function addCoinsToFoundUser(id){
   },0);
 }
 
-function resetCustomerPassword(id){
-  const next=String(document.getElementById('resetUserPassword')?.value||'');
-  if(next.length<6){alert('Password must be at least 6 characters.');return}
-  const u=JSON.parse(localStorage.getItem('magizhUsers')||'{}');
-  if(!u[id]){alert('Customer not found.');return}
-  u[id].password=next;
-  u[id].passwordUpdatedAt=new Date().toISOString();
-  localStorage.setItem('magizhUsers',JSON.stringify(u));
-  alert('Customer password reset successfully. Share the new password with the customer.');
-  renderUsers();
-  setTimeout(()=>{const search=document.getElementById('userSearch');if(search){search.value=id;searchUserForCoins();}},0);
-}
+function resetCustomerPassword(id){const next=String(document.getElementById('resetUserPassword')?.value||'');if(next.length<6){alert('Password must be at least 6 characters.');return}const u=JSON.parse(localStorage.getItem('magizhUsers')||'{}');if(!u[id]){alert('Customer not found.');return}u[id].password=next;u[id].passwordUpdatedAt=new Date().toISOString();localStorage.setItem('magizhUsers',JSON.stringify(u));alert('Customer password reset successfully. Share the new password with the customer.');searchUserForCoins();}
+
 function renderSettings(){const s=settings();document.getElementById('settings').innerHTML=`<div class="panel"><h2>Store & Payment Settings</h2><div class="grid"><div><label>Minimum Order Value (₹)</label><input id="minVal" type="number" min="0" value="${s.min}"><div class="muted">Set 0 for no minimum order.</div></div><div><label>Courier Charge (₹)</label><input id="courierVal" type="number" min="0" value="${s.courier}"></div><div><label>Shop UPI ID</label><input id="upiVal" value="${esc(s.upi)}"></div><div><label>Delivery Estimate</label><input value="7–10 days" disabled></div></div><button class="primary" onclick="saveSettings()">Save Settings</button></div>`}
 function saveSettings(){const s=settings();s.min=Number(minVal.value)||0;s.courier=Number(courierVal.value)||0;s.upi=upiVal.value.trim();save('magizhSettings',s);alert('Settings saved.')}
-function renderSocial(){const s=settings();document.getElementById('social').innerHTML=`<div class="panel"><h2>Social & Contact</h2><label>Address</label><textarea id="addressVal" rows="3">${esc(s.address)}</textarea><label>Instagram URL</label><input id="instagramVal" value="${esc(s.instagram)}"><label>Facebook URL</label><input id="facebookVal" value="${esc(s.facebook)}"><label>WhatsApp Link</label><input id="whatsappVal" value="${esc(s.whatsapp)}"><label>Forgot Password Admin WhatsApp Number</label><input id="forgotWhatsappVal" inputmode="tel" value="${esc(s.forgotWhatsapp||'')}" placeholder="10-digit mobile number"><div class="muted">Customers' Forgot Password requests will be sent to this WhatsApp number. If left blank, the WhatsApp Link / Phone Number is used.</div><label>Phone Number</label><input id="phoneVal" value="${esc(s.phone||'')}"><label>Business Hours</label><input id="hoursVal" value="${esc(s.hours||'')}"><button class="primary" onclick="saveSocial()" style="margin-top:10px">Save Contact & Social</button></div>`}
-function saveSocial(){const s=settings();s.address=addressVal.value.trim();s.instagram=instagramVal.value.trim();s.facebook=facebookVal.value.trim();s.whatsapp=whatsappVal.value.trim();s.forgotWhatsapp=forgotWhatsappVal.value.trim();s.phone=phoneVal.value.trim();s.hours=hoursVal.value.trim();save('magizhSettings',s);alert('Contact & social details saved.')}
+function renderSocial(){const s=settings();document.getElementById('social').innerHTML=`<div class="panel"><h2>Social & Contact</h2><label>Address</label><textarea id="addressVal" rows="3">${esc(s.address)}</textarea><label>Instagram URL</label><input id="instagramVal" value="${esc(s.instagram)}"><label>Facebook URL</label><input id="facebookVal" value="${esc(s.facebook)}"><label>WhatsApp Link</label><input id="whatsappVal" value="${esc(s.whatsapp)}"><label>Phone Number</label><input id="phoneVal" value="${esc(s.phone||'')}"><label>Admin WhatsApp for Forgot Password</label><input id="forgotWhatsappVal" value="${esc(s.forgotWhatsapp||s.whatsapp||s.phone||'')}"><label>Business Hours</label><input id="hoursVal" value="${esc(s.hours||'')}"><button class="primary" onclick="saveSocial()" style="margin-top:10px">Save Contact & Social</button></div>`}
+function saveSocial(){const s=settings();s.address=addressVal.value.trim();s.instagram=instagramVal.value.trim();s.facebook=facebookVal.value.trim();s.whatsapp=whatsappVal.value.trim();s.phone=phoneVal.value.trim();s.forgotWhatsapp=forgotWhatsappVal.value.trim();s.hours=hoursVal.value.trim();save('magizhSettings',s);alert('Contact & social details saved.')}
 function getAdminPassword(){return localStorage.getItem('magizhAdminPassword')||'123456'}
 function renderSecurity(){
   const el=document.getElementById('security');if(!el)return;
@@ -268,19 +219,6 @@ function changeAdminPassword(){
   localStorage.setItem('magizhAdminPassword',next);
   alert('Admin password changed successfully.');
   renderSecurity();
-}
-render('orders');
-const adminDirty=new Set();
-document.addEventListener('input',function(e){const page=e.target.closest('.page');if(page&&['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName))adminDirty.add(page.id)});
-document.addEventListener('click',function(e){const b=e.target.closest('button');if(b&&b.closest('.page')){const page=b.closest('.page');adminDirty.delete(page.id)}});
-window.addEventListener('magizhServerSync',function(){
-  const active=document.querySelector('.tab.active');
-  const id=active && active.getAttribute('onclick')?.match(/show\('([^']+)'/)?.[1] || 'orders';
-  const page=document.getElementById(id),ae=document.activeElement;
-  const typing=page&&ae&&page.contains(ae)&&['INPUT','TEXTAREA','SELECT'].includes(ae.tagName);
-  const hasFiles=page&&Array.from(page.querySelectorAll('input[type=file]')).some(x=>x.files&&x.files.length);
-  if(typing||hasFiles||adminDirty.has(id))return;
-  render(id);
 });
 </script><div class="fullScreenModal" id="imageViewer" onclick="closeImageViewer(event)"><button class="closeFull" onclick="closeImageViewer(event)">×</button><img id="fullPaymentImage" alt="Payment screenshot"></div><style>#adminLoginGate{position:fixed;inset:0;background:#f7f1e8;z-index:100000;display:flex;align-items:center;justify-content:center;padding:20px}#adminLoginGate .box{width:min(390px,100%);background:#fff;border-radius:22px;padding:24px}#adminLoginGate input,#adminLoginGate button{width:100%;box-sizing:border-box;padding:13px;border-radius:12px;margin:7px 0}#adminLoginGate button{border:0;background:#e67e22;color:#fff;font-weight:700}</style><div id="adminLoginGate"><div class="box"><h2>Admin Login</h2><input id="adminUser" placeholder="Username"><input id="adminPass" type="password" placeholder="Password"><button onclick="adminSignIn()">Login</button></div></div><script>function adminSignIn(){if(document.getElementById('adminUser').value==='admin'&&document.getElementById('adminPass').value===getAdminPassword()){sessionStorage.setItem('magizhAdminAuth','1');document.getElementById('adminLoginGate').style.display='none'}else alert('Invalid username or password.')}document.addEventListener('DOMContentLoaded',()=>{if(sessionStorage.getItem('magizhAdminAuth')==='1')document.getElementById('adminLoginGate').style.display='none'});</script><script>window.MAGIZH_SYNC_KEYS=['magizhUsers','magizhOrders','magizhProducts','magizhCategories','magizhSettings','magizhB5','magizhCoinWallet','magizhAdminPassword'];</script><script src="/server-sync.js"></script>
 </body></html>
