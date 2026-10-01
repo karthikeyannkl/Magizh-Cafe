@@ -1,1 +1,3 @@
-Magizh Cafe B5 Partner Phase 1.4. This version force-renders the Partner Shop Offers entry after the hero if it is missing and binds a direct tap handler. Existing customer/admin/partner features are retained.
+Magizh Cafe – B5 Partner Phase 1.5
+Fix: View Partner Offers now uses a unique direct click handler and capture listener so it opens reliably on mobile, without affecting View Cart.
+Partner page: /partner

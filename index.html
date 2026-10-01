@@ -82,7 +82,7 @@ body{margin:0 auto}
       <h2>Partner Shop Offers</h2>
       <p>Use your B5 Coins at selected partner shops and cafes.</p>
     </div>
-    <button type="button" id="partnerOffersBtn" onclick="openPartnerOffers(); return false;">View Partner Offers →</button>
+    <button type="button" id="partnerOffersBtn" onclick="return magizhOpenPartnerOffers(event);">View Partner Offers →</button>
   </div>
 </section>
 <div class="cats" id="categoryBar"><button class="cat active" data-category="All">All</button><button class="cat" data-category="Powders">Powders</button><button class="cat" data-category="Thokku & Pickles">Thokku & Pickles</button><button class="cat" data-category="Soaps">Soaps</button><button class="cat" data-category="Millet Laddus & Balls">Millet Laddus & Balls</button><button class="cat" data-category="Aval Varieties">Aval Varieties</button><button class="cat" data-category="Traditional Rice">Traditional Rice</button><button class="cat" data-category="Millets">Millets</button><button class="cat" data-category="Herbal Tea & Coffee">Herbal Tea & Coffee</button><button class="cat" data-category="Millet Biscuits">Millet Biscuits</button><button class="cat" data-category="Country Sugar">Country Sugar</button></div>
@@ -780,6 +780,8 @@ function getPartners(){try{const x=JSON.parse(localStorage.getItem('magizhPartne
 function getPartnerOffers(){try{const x=JSON.parse(localStorage.getItem('magizhPartnerOffers')||'null');if(Array.isArray(x))return x}catch(e){} localStorage.setItem('magizhPartnerOffers',JSON.stringify(DEFAULT_PARTNER_OFFERS));return DEFAULT_PARTNER_OFFERS}
 function openPartnerOffers(){const m=document.getElementById('partnerOffersModal');if(!m)return;m.style.display='flex';const towns=[...new Set(getPartners().filter(p=>p.active!==false).map(p=>p.town))];const sel=document.getElementById('partnerTown');sel.innerHTML=towns.map(t=>'<option>'+esc(t)+'</option>').join('');renderPartnerOffers()}
 function closePartnerOffers(){document.getElementById('partnerOffersModal').style.display='none'}
+function magizhOpenPartnerOffers(e){if(e){e.preventDefault();e.stopPropagation();if(e.stopImmediatePropagation)e.stopImmediatePropagation();}const m=document.getElementById('partnerOffersModal');if(!m)return false;m.style.display='flex';m.style.visibility='visible';m.style.opacity='1';m.style.zIndex='99999';const towns=[...new Set(getPartners().filter(p=>p.active!==false).map(p=>p.town))];const sel=document.getElementById('partnerTown');if(sel){sel.innerHTML=towns.map(t=>'<option>'+esc(t)+'</option>').join('');}renderPartnerOffers();return false;}
+window.magizhOpenPartnerOffers=magizhOpenPartnerOffers;
 let selectedPartnerOffer=null;
 function renderPartnerOffers(){const town=document.getElementById('partnerTown')?.value||'';const ps=getPartners().filter(p=>p.active!==false&&p.town===town);const offers=getPartnerOffers().filter(o=>o.active!==false);const box=document.getElementById('partnerOfferList');if(!box)return;const list=[];ps.forEach(p=>offers.filter(o=>o.partnerId===p.id).forEach(o=>list.push({p,o})));box.innerHTML=list.length?list.map(({p,o})=>`<div class="partnerCard"><h3>${esc(p.name)}</h3><div class="partnerMeta">📍 ${esc(p.town)} • ${esc(p.category)}</div><span class="offerBadge">🪙 ${Number(o.percent)||0}% COINS</span><div class="partnerMeta">${esc(o.title)} • Min bill ₹${Number(o.minBill)||0}${Number(o.maxCoins)>0?' • Max '+Number(o.maxCoins)+' coins':''}<br>Valid: ${esc(o.start)} to ${esc(o.end)}</div><button onclick="startPartnerRedeem('${esc(o.id)}')">Use This Offer</button></div>`).join(''):'<div class="emptyOrders">No active partner offers in this town.</div>'}
 function startPartnerRedeem(id){const o=getPartnerOffers().find(x=>x.id===id);const p=getPartners().find(x=>x.id===o?.partnerId);if(!o||!p)return;selectedPartnerOffer={o,p};document.getElementById('redeemOfferTitle').textContent=p.name+' — '+o.title;document.getElementById('redeemBalance').textContent=getWallet();document.getElementById('redeemBill').value='';document.getElementById('redeemCalc').innerHTML='Enter your bill amount to calculate coin usage.';closePartnerOffers();document.getElementById('partnerRedeemModal').style.display='flex'}
@@ -800,15 +802,16 @@ function submitPartnerRedemption(){const x=selectedPartnerOffer;if(!x)return;con
     if(!hero) return;
     var sec=document.createElement('section');
     sec.className='partnerQuick'; sec.id='partnerQuick';
-    sec.innerHTML='<div class="partnerQuickInner" role="button" tabindex="0"><div><span class="ey">B5 COIN BENEFIT</span><h2>Partner Shop Offers</h2><p>Use your B5 Coins at selected partner shops and cafes.</p></div><button type="button" id="partnerOffersBtn">View Partner Offers →</button></div>';
+    sec.innerHTML='<div class="partnerQuickInner"><div><span class="ey">B5 COIN BENEFIT</span><h2>Partner Shop Offers</h2><p>Use your B5 Coins at selected partner shops and cafes.</p></div><button type="button" id="partnerOffersBtn" onclick="return magizhOpenPartnerOffers(event);">View Partner Offers →</button></div>';
     hero.insertAdjacentElement('afterend',sec);
-    var open=function(e){if(e){e.preventDefault();e.stopPropagation();} if(typeof window.openPartnerOffers==='function') window.openPartnerOffers();};
+    var open=function(e){return window.magizhOpenPartnerOffers(e);};
     sec.querySelector('.partnerQuickInner').addEventListener('click',open);
     sec.querySelector('#partnerOffersBtn').addEventListener('click',open);
     sec.querySelector('.partnerQuickInner').addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){open(e);}});
   }
   document.addEventListener('DOMContentLoaded',ensurePartnerQuick);
   setTimeout(ensurePartnerQuick,500);
+  document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('#partnerOffersBtn');if(b){window.magizhOpenPartnerOffers(e);}},true);
 })();
 </script>
 </body></html>
