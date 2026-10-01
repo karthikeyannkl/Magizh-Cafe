@@ -283,16 +283,18 @@ const server = http.createServer(async (req, res) => {
       );
     }
 
-    if (req.method === "GET" && url.pathname === "/login-intro.mp4") {
-      const filePath=path.join(ROOT,"login-intro.mp4");
-      if(!fs.existsSync(filePath)) return sendJson(res,404,{ok:false,error:"login-intro.mp4 not found"});
-      const stat=fs.statSync(filePath), size=stat.size, range=req.headers.range;
-      res.setHeader("Content-Type","video/mp4"); res.setHeader("Accept-Ranges","bytes"); res.setHeader("Cache-Control","no-store");
-      if(!range){res.writeHead(200,{"Content-Length":size}); return fs.createReadStream(filePath).pipe(res);}
-      const m=/bytes=(\d*)-(\d*)/.exec(range); if(!m){res.writeHead(416,{"Content-Range":`bytes */${size}`});return res.end();}
-      const start=m[1]?Number(m[1]):0, end=m[2]?Math.min(Number(m[2]),size-1):size-1;
-      if(start<0||start>end||start>=size){res.writeHead(416,{"Content-Range":`bytes */${size}`});return res.end();}
-      res.writeHead(206,{"Content-Length":end-start+1,"Content-Range":`bytes ${start}-${end}/${size}`}); fs.createReadStream(filePath,{start,end}).pipe(res); return;
+    if (
+      req.method === "GET" &&
+      (
+        url.pathname === "/partner" ||
+        url.pathname === "/partner/"
+      )
+    ) {
+      return sendFile(
+        res,
+        "partner.html",
+        "text/html; charset=utf-8"
+      );
     }
 
     if (
