@@ -127,6 +127,34 @@ function sendFile(res, filename, type) {
   res.end(fs.readFileSync(filePath));
 }
 
+function sendVideoRange(req, res, filename) {
+  const filePath = path.join(ROOT, filename);
+  if (!fs.existsSync(filePath)) return sendJson(res, 404, { ok:false, error: filename + " not found" });
+  const stat = fs.statSync(filePath);
+  const size = stat.size;
+  const range = req.headers.range;
+  const common = {
+    "Content-Type": "video/mp4",
+    "Accept-Ranges": "bytes",
+    "Cache-Control": "public, max-age=3600"
+  };
+  if (!range) {
+    res.writeHead(200, {...common, "Content-Length": size});
+    return fs.createReadStream(filePath).pipe(res);
+  }
+  const m = /^bytes=(\d*)-(\d*)$/.exec(range);
+  if (!m) { res.writeHead(416, {"Content-Range": `bytes */${size}`}); return res.end(); }
+  let start = m[1] ? Number(m[1]) : 0;
+  let end = m[2] ? Number(m[2]) : size - 1;
+  if (!Number.isFinite(start) || !Number.isFinite(end) || start < 0 || start >= size) {
+    res.writeHead(416, {"Content-Range": `bytes */${size}`}); return res.end();
+  }
+  end = Math.min(end, size - 1);
+  if (start > end) { res.writeHead(416, {"Content-Range": `bytes */${size}`}); return res.end(); }
+  res.writeHead(206, {...common, "Content-Length": end-start+1, "Content-Range": `bytes ${start}-${end}/${size}`});
+  fs.createReadStream(filePath, {start, end}).pipe(res);
+}
+
 async function readBody(req) {
   let raw = "";
 
@@ -267,6 +295,10 @@ const server = http.createServer(async (req, res) => {
         updatedAt: saved.updatedAt,
         expiresAt: saved.expiresAt
       });
+    }
+
+    if (req.method === "GET" && url.pathname === "/login-intro.mp4") {
+      return sendVideoRange(req, res, "login-intro.mp4");
     }
 
     if (
