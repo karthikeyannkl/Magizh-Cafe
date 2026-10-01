@@ -82,7 +82,7 @@ body{margin:0 auto}
       <h2>Partner Shop Offers</h2>
       <p>Use your B5 Coins at selected partner shops and cafes.</p>
     </div>
-    <button type="button" id="partnerOffersBtn" onclick="return magizhOpenPartnerOffers(event);">View Partner Offers →</button>
+    <a id="partnerOffersBtn" href="/partner-offers" style="display:inline-flex;align-items:center;justify-content:center;text-decoration:none;color:#fff;background:#e9792d;border:0;border-radius:22px;padding:11px 14px;font-weight:700;font-size:10px;white-space:nowrap;cursor:pointer;position:relative;z-index:1000;touch-action:manipulation;">View Partner Offers →</a>
   </div>
 </section>
 <div class="cats" id="categoryBar"><button class="cat active" data-category="All">All</button><button class="cat" data-category="Powders">Powders</button><button class="cat" data-category="Thokku & Pickles">Thokku & Pickles</button><button class="cat" data-category="Soaps">Soaps</button><button class="cat" data-category="Millet Laddus & Balls">Millet Laddus & Balls</button><button class="cat" data-category="Aval Varieties">Aval Varieties</button><button class="cat" data-category="Traditional Rice">Traditional Rice</button><button class="cat" data-category="Millets">Millets</button><button class="cat" data-category="Herbal Tea & Coffee">Herbal Tea & Coffee</button><button class="cat" data-category="Millet Biscuits">Millet Biscuits</button><button class="cat" data-category="Country Sugar">Country Sugar</button></div>
@@ -802,16 +802,13 @@ function submitPartnerRedemption(){const x=selectedPartnerOffer;if(!x)return;con
     if(!hero) return;
     var sec=document.createElement('section');
     sec.className='partnerQuick'; sec.id='partnerQuick';
-    sec.innerHTML='<div class="partnerQuickInner"><div><span class="ey">B5 COIN BENEFIT</span><h2>Partner Shop Offers</h2><p>Use your B5 Coins at selected partner shops and cafes.</p></div><button type="button" id="partnerOffersBtn" onclick="return magizhOpenPartnerOffers(event);">View Partner Offers →</button></div>';
+    sec.innerHTML='<div class="partnerQuickInner"><div><span class="ey">B5 COIN BENEFIT</span><h2>Partner Shop Offers</h2><p>Use your B5 Coins at selected partner shops and cafes.</p></div><a id="partnerOffersBtn" href="/partner-offers" style="display:inline-flex;align-items:center;justify-content:center;text-decoration:none;color:#fff;background:#e9792d;border:0;border-radius:22px;padding:11px 14px;font-weight:700;font-size:10px;white-space:nowrap;cursor:pointer;position:relative;z-index:1000;touch-action:manipulation;">View Partner Offers →</a></div>';
     hero.insertAdjacentElement('afterend',sec);
-    var open=function(e){return window.magizhOpenPartnerOffers(e);};
-    sec.querySelector('.partnerQuickInner').addEventListener('click',open);
-    sec.querySelector('#partnerOffersBtn').addEventListener('click',open);
-    sec.querySelector('.partnerQuickInner').addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){open(e);}});
+    sec.querySelector('.partnerQuickInner').addEventListener('click',function(e){if(e.target.closest && e.target.closest('#partnerOffersBtn')) return; window.location.href='/partner-offers';});
+    sec.querySelector('.partnerQuickInner').addEventListener('keydown',function(e){if(e.key==='Enter'||e.key===' '){window.location.href='/partner-offers'; e.preventDefault();}});
   }
   document.addEventListener('DOMContentLoaded',ensurePartnerQuick);
   setTimeout(ensurePartnerQuick,500);
-  document.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('#partnerOffersBtn');if(b){window.magizhOpenPartnerOffers(e);}},true);
 })();
 </script>
 </body></html>

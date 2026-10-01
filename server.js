@@ -287,12 +287,14 @@ const server = http.createServer(async (req, res) => {
       req.method === "GET" &&
       (
         url.pathname === "/partner" ||
-        url.pathname === "/partner/"
+        url.pathname === "/partner/" ||
+        url.pathname === "/partner-offers" ||
+        url.pathname === "/partner-offers/"
       )
     ) {
       return sendFile(
         res,
-        "partner.html",
+        url.pathname.startsWith("/partner-offers") ? "partner-offers.html" : "partner.html",
         "text/html; charset=utf-8"
       );
     }
