@@ -82,7 +82,7 @@ body{margin:0 auto}
       <h2>Partner Shop Offers</h2>
       <p>Use your B5 Coins at selected partner shops and cafes.</p>
     </div>
-    <button onclick="openPartnerOffers()">View Partner Offers →</button>
+    <button type="button" id="partnerOffersBtn">View Partner Offers →</button>
   </div>
 </section>
 <div class="cats" id="categoryBar"><button class="cat active" data-category="All">All</button><button class="cat" data-category="Powders">Powders</button><button class="cat" data-category="Thokku & Pickles">Thokku & Pickles</button><button class="cat" data-category="Soaps">Soaps</button><button class="cat" data-category="Millet Laddus & Balls">Millet Laddus & Balls</button><button class="cat" data-category="Aval Varieties">Aval Varieties</button><button class="cat" data-category="Traditional Rice">Traditional Rice</button><button class="cat" data-category="Millets">Millets</button><button class="cat" data-category="Herbal Tea & Coffee">Herbal Tea & Coffee</button><button class="cat" data-category="Millet Biscuits">Millet Biscuits</button><button class="cat" data-category="Country Sugar">Country Sugar</button></div>
@@ -784,6 +784,21 @@ let selectedPartnerOffer=null;
 function renderPartnerOffers(){const town=document.getElementById('partnerTown')?.value||'';const ps=getPartners().filter(p=>p.active!==false&&p.town===town);const offers=getPartnerOffers().filter(o=>o.active!==false);const box=document.getElementById('partnerOfferList');if(!box)return;const list=[];ps.forEach(p=>offers.filter(o=>o.partnerId===p.id).forEach(o=>list.push({p,o})));box.innerHTML=list.length?list.map(({p,o})=>`<div class="partnerCard"><h3>${esc(p.name)}</h3><div class="partnerMeta">📍 ${esc(p.town)} • ${esc(p.category)}</div><span class="offerBadge">🪙 ${Number(o.percent)||0}% COINS</span><div class="partnerMeta">${esc(o.title)} • Min bill ₹${Number(o.minBill)||0}${Number(o.maxCoins)>0?' • Max '+Number(o.maxCoins)+' coins':''}<br>Valid: ${esc(o.start)} to ${esc(o.end)}</div><button onclick="startPartnerRedeem('${esc(o.id)}')">Use This Offer</button></div>`).join(''):'<div class="emptyOrders">No active partner offers in this town.</div>'}
 function startPartnerRedeem(id){const o=getPartnerOffers().find(x=>x.id===id);const p=getPartners().find(x=>x.id===o?.partnerId);if(!o||!p)return;selectedPartnerOffer={o,p};document.getElementById('redeemOfferTitle').textContent=p.name+' — '+o.title;document.getElementById('redeemBalance').textContent=getWallet();document.getElementById('redeemBill').value='';document.getElementById('redeemCalc').innerHTML='Enter your bill amount to calculate coin usage.';closePartnerOffers();document.getElementById('partnerRedeemModal').style.display='flex'}
 function closePartnerRedeem(){document.getElementById('partnerRedeemModal').style.display='none';selectedPartnerOffer=null}
+
+// Reliable customer-side entry point for Partner Offers.
+// Keep it on window so the button works even when other scripts are bundled/changed.
+window.openPartnerOffers = openPartnerOffers;
+document.addEventListener('DOMContentLoaded',function(){
+  const btn=document.getElementById('partnerOffersBtn');
+  if(btn){
+    btn.addEventListener('click',function(e){
+      e.preventDefault();
+      e.stopPropagation();
+      try{ window.openPartnerOffers(); }
+      catch(err){ console.error('Partner Offers open error:',err); alert('Partner Offers could not be opened. Please refresh once and try again.'); }
+    });
+  }
+});
 function updateRedeemCalc(){const x=selectedPartnerOffer;if(!x)return;const bill=Math.max(0,Number(document.getElementById('redeemBill').value)||0),o=x.o;const available=getWallet();let coins=Math.floor(bill*(Number(o.percent)||0)/100);if(Number(o.maxCoins)>0)coins=Math.min(coins,Number(o.maxCoins));coins=Math.min(coins,available);document.getElementById('redeemCalc').innerHTML=`Bill: <b>₹${bill}</b><br>Offer: <b>${Number(o.percent)||0}%</b><br>Coins requested: <b>🪙 ${coins}</b><br>After merchant confirmation: <b>${Math.max(0,available-coins)} coins</b>`}
 function submitPartnerRedemption(){const x=selectedPartnerOffer;if(!x)return;const bill=Math.max(0,Number(document.getElementById('redeemBill').value)||0),o=x.o,available=getWallet();if(bill<Number(o.minBill||0)){alert('Minimum bill for this offer is ₹'+Number(o.minBill||0));return}let coins=Math.floor(bill*(Number(o.percent)||0)/100);if(Number(o.maxCoins)>0)coins=Math.min(coins,Number(o.maxCoins));coins=Math.min(coins,available);if(coins<=0){alert('Not enough B5 coins for this offer.');return}let arr=[];try{arr=JSON.parse(localStorage.getItem('magizhRedemptions')||'[]')}catch(e){}const u=JSON.parse(sessionStorage.getItem('magizhCurrentUser')||'null');const id='R-'+Date.now().toString(36).toUpperCase();arr.push({id,offerId:o.id,partnerId:x.p.id,customerId:sessionStorage.getItem('magizhCurrentUserId')||'GUEST',customerName:u?.name||'Customer',bill,coins,status:'Pending Merchant Confirmation',date:new Date().toISOString()});localStorage.setItem('magizhRedemptions',JSON.stringify(arr));closePartnerRedeem();alert('Redemption request sent to '+x.p.name+'. Coins will be deducted only after merchant confirmation.\n\nRedemption ID: '+id);}
 </script>
