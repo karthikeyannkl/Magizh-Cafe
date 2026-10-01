@@ -1,20 +1,13 @@
-# Magizh Cafe — Partner B5 Coins Phase 1
+Magizh Cafe – B5 Partner Phase 1.1
 
-This package starts the Partner B5 Coin system on top of the approved Magizh Cafe V10 base.
+Customer:
+- Visible Partner Shop Offers card on the main page.
+- View Partner Offers opens town-wise active partner offers.
+- Bill-based redemption request; coins are deducted only after merchant confirmation.
 
-## Added
-- Customer: Partner Offers browser by town.
-- Customer: Offer calculation and redemption request.
-- Coins are NOT deducted at request time; merchant confirmation is required.
-- Admin: Partners & Offers tab.
-- Admin: Add partner and create/disable offers.
-- Partner mobile page: `/partner` with Partner ID/password login, pending redemption confirmation, and monthly received-coin statistics.
-- Shared localStorage/server sync keys: `magizhPartners`, `magizhPartnerOffers`, `magizhRedemptions`.
+Partner:
+- Open /partner for Partner Login.
+- Demo P001/partner123, P002/partner123, P003/partner123.
 
-## Demo partner login
-- P001 / partner123
-- P002 / partner123
-- P003 / partner123
-
-## Important
-This is Phase 1 test/demo logic using the existing temporary JSON sync architecture. It is not yet a production payment/settlement system. Existing customer/admin design and existing B5 login are retained.
+Admin:
+- Partners & Offers section includes Open Partner Login button.
