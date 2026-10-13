@@ -296,6 +296,10 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(206,{"Content-Length":end-start+1,"Content-Range":`bytes ${start}-${end}/${size}`}); fs.createReadStream(filePath,{start,end}).pipe(res); return;
     }
 
+    if (req.method === "GET" && (url.pathname === "/partner" || url.pathname === "/partner/")) {
+      return sendFile(res, "partner.html", "text/html; charset=utf-8");
+    }
+
     if (req.method === "GET" && (url.pathname === "/partner-offers" || url.pathname === "/partner-offers/")) {
       return sendFile(res, "partner-offers.html", "text/html; charset=utf-8");
     }

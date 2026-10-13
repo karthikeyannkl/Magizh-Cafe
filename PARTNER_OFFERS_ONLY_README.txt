@@ -1,21 +1,11 @@
-MAGIZH CAFE — PARTNER OFFERS RESTORE
+MAGIZH CAFE — PARTNER OFFERS CORRECTION ONLY
 
-This package restores only the missing B5 Coins Partner Offers entry/page and adds the minimal Admin > Partner Offers form needed to add one test partner.
+This patch is limited to the Partner Offers flow. It does not intentionally change Products, Orders, Categories, or the approved mobile layout.
 
-Files to upload/replace in the same project root:
-- index.html (adds the clickable B5 Coins Partner Offers card on the home page)
-- admin.html (adds Admin > Partner Offers: add/delete partner offer)
-- partner-offers.html (customer-facing partner offers page)
-- server.js (serves /partner-offers and includes partner offers in default state)
-- server-sync.js (syncs partner offers)
-- build.mjs (existing build config already includes partner-offers.html)
-- package.json (included for completeness; unchanged)
+Files in this package: index.html, admin.html, partner-offers.html, partner.html, server.js, server-sync.js, build.mjs, package.json.
 
-Test:
-1. Deploy the files.
-2. Open Admin and sign in.
-3. Open Partner Offers tab and add one partner.
-4. Open customer home page and tap B5 Coins Partner Offers.
-5. The added partner should appear on the Partner Offers page.
+Corrections: Partner Offers is included in the server-sync key lists; the customer offers page uses server sync so offers created in Admin can appear across browsers/devices; /partner now resolves to a separate partner entry page.
 
-No product coin-percentage changes were made in this package. The current product coin-use cap remains 50% globally. Per-product percentages can be added separately in Product Add/Edit when requested.
+Important limitation: The partner entry page is only a landing page. Secure partner-specific authentication, partner wallet credit/debit, coin redemption processing, and transaction ledger are NOT implemented/verified in this patch. Do not treat wallet transfers as production-ready.
+
+Deploy these files to the existing project root, then test Admin > Partner Offers and /partner-offers on a separate browser/device.
