@@ -27,7 +27,6 @@ const DEFAULT_STATE = {
   magizhProducts: null,
   magizhCategories: null,
   magizhSettings: {},
-  magizhPartnerOffers: [],
   magizhB5: {},
   magizhCoinWallet: "0",
   magizhAdminPassword: null,
@@ -294,10 +293,6 @@ const server = http.createServer(async (req, res) => {
       const start=m[1]?Number(m[1]):0, end=m[2]?Math.min(Number(m[2]),size-1):size-1;
       if(start<0||start>end||start>=size){res.writeHead(416,{"Content-Range":`bytes */${size}`});return res.end();}
       res.writeHead(206,{"Content-Length":end-start+1,"Content-Range":`bytes ${start}-${end}/${size}`}); fs.createReadStream(filePath,{start,end}).pipe(res); return;
-    }
-
-    if (req.method === "GET" && (url.pathname === "/partner-offers" || url.pathname === "/partner-offers/")) {
-      return sendFile(res, "partner-offers.html", "text/html; charset=utf-8");
     }
 
     if (

@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<meta name="theme-color" content="#174b35" />
+<title>Magizh × B5 | Mobile Store Preview</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --green:#174b35; --green2:#2d704b; --orange:#c95b1b; --cream:#f8f4e9;
+  --paper:#fffdf7; --sage:#e8eddf; --muted:#7b8177; --line:#e7e1d5;
+  --shadow:0 8px 24px rgba(36,55,38,.07);
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:#e9e7df;color:var(--green);font-family:'DM Sans',sans-serif}
+button,input{font:inherit}
+button{cursor:pointer}
+.phone{width:100%;max-width:430px;min-height:100vh;margin:0 auto;background:var(--cream);position:relative;box-shadow:0 0 40px #00000010;overflow:hidden;padding-bottom:86px}
+.topline{background:var(--green);color:#fff;text-align:center;padding:9px 12px;font-size:11px;letter-spacing:.5px}
+.header{background:var(--paper);padding:15px 17px 13px;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:10}
+.brandrow{display:flex;align-items:center;gap:11px}
+.menu{width:35px;height:35px;border:0;background:transparent;color:var(--green);font-size:25px;padding:0}
+.logo-mark{width:43px;height:43px;border-radius:13px;background:#e8f1df;display:grid;place-items:center;color:#168d39;font-size:26px;flex-shrink:0}
+.brand{flex:1;min-width:0}
+.brand h1{font-family:'Playfair Display',serif;font-size:25px;line-height:1;margin:0;letter-spacing:-.7px}
+.brand p{font-size:10px;color:var(--muted);margin:4px 0 0;letter-spacing:.2px}
+.profile{border:0;border-radius:30px;padding:10px 13px;background:var(--sage);font-size:11px;font-weight:700;color:var(--green)}
+.searchrow{display:flex;gap:8px;margin-top:14px}
+.search{flex:1;display:flex;align-items:center;gap:8px;background:#f3f0e7;border:1px solid var(--line);border-radius:13px;padding:0 12px;height:42px;color:var(--muted)}
+.search input{border:0;outline:0;background:transparent;width:100%;min-width:0;font-size:12px;color:var(--green)}
+.cart{border:0;border-radius:13px;background:var(--orange);color:white;padding:0 13px;font-size:12px;font-weight:700}
+.hero{padding:17px 16px 0}
+.hero-card{min-height:228px;border-radius:23px;overflow:hidden;position:relative;background:linear-gradient(115deg,#edf2df 0%,#f9ead3 58%,#f5d8ac 100%);padding:21px 18px;box-shadow:var(--shadow)}
+.eyebrow{font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:700;color:var(--orange);margin:0 0 10px}
+.hero h2{font-family:'Playfair Display',serif;font-weight:600;font-size:31px;line-height:1.08;letter-spacing:-.7px;max-width:245px;margin:0;color:#263f2d}
+.hero .sub{font-size:12px;line-height:1.55;color:#667267;max-width:235px;margin:10px 0 15px}
+.primary{background:var(--orange);color:#fff;border:0;border-radius:30px;padding:12px 16px;font-size:12px;font-weight:700;box-shadow:0 5px 12px #c95b1b30}
+.hero-art{position:absolute;right:-9px;bottom:7px;width:145px;height:150px;display:flex;align-items:center;justify-content:center}
+.hero-art img{width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 10px 10px #35492b22)}
+.coin-tag{position:absolute;right:13px;top:14px;background:#fff9;border:1px solid #ffffffb8;border-radius:20px;padding:7px 9px;font-size:9px;font-weight:700;color:#8a4b16}
+.section{padding:23px 17px 0}
+.section-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:13px}
+.section h3{font-family:'Playfair Display',serif;font-size:23px;font-weight:600;letter-spacing:-.35px;margin:0}
+.section-head p{margin:4px 0 0;font-size:11px;color:var(--muted)}
+.textlink{border:0;background:transparent;color:var(--orange);font-weight:700;font-size:11px;padding:6px 0;white-space:nowrap}
+.category-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.category{border:1px solid var(--line);background:var(--paper);border-radius:17px;padding:9px 5px 11px;text-align:center;box-shadow:0 4px 12px #233a2608;transition:transform .16s,border-color .16s;min-width:0}
+.category:active{transform:scale(.97)}
+.cat-icon{width:100%;height:67px;margin:0 auto 8px;border-radius:12px;background:var(--sage);display:block;overflow:hidden;position:relative}
+.cat-icon img{width:100%;height:100%;object-fit:cover;display:block}
+.cat-icon:after{content:"";position:absolute;inset:35% 0 0;background:linear-gradient(transparent,#172d1d26)}
+.category span:last-child{font-size:10px;font-weight:700;display:block;color:#385440}
+.offer-banner{margin:19px 17px 0;background:linear-gradient(100deg,#f5b34a,#f9dba1);border-radius:18px;padding:15px 15px;display:flex;align-items:center;gap:12px;overflow:hidden;position:relative}
+.coin{width:57px;height:57px;flex-shrink:0;border-radius:50%;display:grid;place-items:center;background:linear-gradient(145deg,#ffec8c,#c98b12);border:3px solid #f9dc65;box-shadow:inset 0 0 0 2px #fff5;color:#70440c;font-family:'Playfair Display',serif;font-weight:700;font-size:17px}
+.offer-copy{position:relative;z-index:1}
+.offer-copy strong{display:block;font-family:'Playfair Display',serif;font-size:17px;line-height:1.15;color:#813a18}
+.offer-copy span{display:block;font-size:10px;color:#604a29;margin-top:5px}
+.offer-copy b{display:inline-block;margin-top:8px;border-radius:20px;background:var(--orange);color:white;padding:7px 10px;font-size:10px}
+.products{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.product{background:var(--paper);border:1px solid var(--line);border-radius:17px;overflow:hidden;box-shadow:0 5px 15px #2b3b2808;min-width:0}
+.product-img{height:145px;background:#e9eddf;position:relative;overflow:hidden}
+.product-img img{width:100%;height:100%;object-fit:cover;display:block}
+.pill{position:absolute;top:9px;left:8px;border-radius:20px;background:#fffdf0eF;color:var(--green);font-size:9px;font-weight:700;padding:5px 7px}
+.product-body{padding:11px}
+.product h4{font-size:12px;line-height:1.35;margin:0 0 6px;color:#294b35;min-height:32px}
+.weight{font-size:10px;color:var(--muted);margin-bottom:8px}
+.price-line{display:flex;align-items:baseline;gap:6px;flex-wrap:wrap}
+.price{font-size:15px;font-weight:700;color:var(--green)}
+.old{font-size:10px;color:#9a9b92;text-decoration:line-through}
+.discount{font-size:9px;color:#b54f1a;font-weight:700}
+.add{width:100%;margin-top:10px;border:0;border-radius:10px;padding:10px 8px;background:var(--green2);color:white;font-size:11px;font-weight:700}
+.added{background:#e6eddf;color:var(--green)}
+.partner-card{display:flex;align-items:center;gap:12px;background:var(--paper);border:1px solid var(--line);border-radius:17px;padding:12px}
+.partner-img{width:66px;height:66px;border-radius:13px;object-fit:cover;background:var(--sage)}
+.partner-info{flex:1;min-width:0}
+.partner-info strong{font-family:'Playfair Display',serif;font-size:15px;display:block}
+.partner-info p{font-size:10px;color:var(--muted);margin:4px 0 7px}
+.partner-offer{display:inline-block;background:#f5e3ce;color:#8e4b1d;border-radius:7px;padding:6px 8px;font-size:9px;font-weight:700}
+.footer-note{text-align:center;font-size:10px;color:var(--muted);padding:20px 20px 6px}
+.bottomnav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;display:grid;grid-template-columns:repeat(5,1fr);background:#fffdf8f7;backdrop-filter:blur(16px);border-top:1px solid #ded9cc;padding:7px 5px calc(8px + env(safe-area-inset-bottom));z-index:20;box-shadow:0 -8px 24px #243d2810}
+.navitem{border:0;background:transparent;color:#858a80;font-size:9px;display:flex;flex-direction:column;align-items:center;gap:4px;padding:3px 1px;border-radius:13px;min-width:0}
+.navitem .navicon{width:31px;height:27px;display:grid;place-items:center;font-size:18px;line-height:1;border-radius:10px;background:transparent;transition:background .18s,color .18s}
+.navitem.active{color:var(--green);font-weight:700}
+.navitem.active .navicon{background:#e7eddf;color:var(--green);box-shadow:inset 0 0 0 1px #d8e2d0}
+.navitem span:last-child{white-space:nowrap}
+.toast{position:fixed;left:50%;bottom:85px;transform:translateX(-50%);background:#173f2e;color:#fff;padding:10px 15px;border-radius:30px;font-size:11px;opacity:0;pointer-events:none;transition:.2s;z-index:30;white-space:nowrap}
+.toast.show{opacity:1}
+@media(min-width:600px){body{padding:24px 0}.phone{border-radius:26px;min-height:calc(100vh - 48px)}.header{border-radius:26px 26px 0 0}.bottomnav{bottom:24px;border-radius:0 0 26px 26px}}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="topline">MAGIZH × B5 &nbsp;·&nbsp; Shop local. Share goodness.</div>
+  <header class="header">
+    <div class="brandrow">
+      <button class="menu" aria-label="Open menu" onclick="toast('Menu preview')">☰</button>
+      <div class="logo-mark">ம</div>
+      <div class="brand"><h1>Magizh</h1><p>Shopping &amp; Partner Network</p></div>
+      <button class="profile" onclick="toast('Profile page preview')">Profile</button>
+    </div>
+    <div class="searchrow">
+      <label class="search"><span>⌕</span><input id="search" placeholder="Search products..." oninput="filterProducts()" /></label>
+      <button class="cart" onclick="toast('Cart preview · '+cartCount+' item(s)')">🛒 <span id="cartCount">0</span></button>
+    </div>
+  </header>
+
+  <section class="hero">
+    <div class="hero-card">
+      <p class="eyebrow">Magizh premium collection</p>
+      <h2>Traditional goodness, beautifully crafted.</h2>
+      <p class="sub">Homemade traditional foods, millet favourites and carefully crafted collections from Magizh.</p>
+      <button class="primary" onclick="document.getElementById('products').scrollIntoView({behavior:'smooth'})">Explore collection&nbsp; →</button>
+      <div class="hero-art">
+        <img src="https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=400&q=80" alt="Traditional wholesome food" />
+      </div>
+      <span class="coin-tag">✦ B5 COIN REWARDS</span>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="section-head"><div><h3>Shop by category</h3><p>Everyday favourites</p></div><button class="textlink" onclick="toast('All categories selected')">View all&nbsp; →</button></div>
+    <div class="category-grid">
+      <button class="category" onclick="selectCategory('Podi')"><span class="cat-icon"><img loading="lazy" src="https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=300&q=80" alt="Traditional spices and podi"></span><span>Podi</span></button>
+      <button class="category" onclick="selectCategory('Thokku')"><span class="cat-icon"><img loading="lazy" src="https://images.unsplash.com/photo-1472476443507-c7a5948772fc?auto=format&fit=crop&w=300&q=80" alt="Herbs and traditional ingredients"></span><span>Thokku</span></button>
+      <button class="category" onclick="selectCategory('Oorugai')"><span class="cat-icon"><img loading="lazy" src="https://images.unsplash.com/photo-1519996529931-28324d7a630e?auto=format&fit=crop&w=300&q=80" alt="Fresh lemons"></span><span>Oorugai</span></button>
+      <button class="category" onclick="selectCategory('Snacks')"><span class="cat-icon"><img loading="lazy" src="https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=300&q=80" alt="Traditional snacks"></span><span>Snacks</span></button>
+      <button class="category" onclick="selectCategory('Soaps')"><span class="cat-icon"><img loading="lazy" src="https://images.unsplash.com/photo-1600857544200-b2f666a9a2ec?auto=format&fit=crop&w=300&q=80" alt="Handmade soap"></span><span>Soaps</span></button>
+      <button class="category" onclick="selectCategory('All')"><span class="cat-icon"><img loading="lazy" src="https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=300&q=80" alt="Grains and traditional food"></span><span>Millets</span></button>
+      <button class="category" onclick="selectCategory('All')"><span class="cat-icon"><img loading="lazy" src="https://images.unsplash.com/photo-1547592180-85f173990554?auto=format&fit=crop&w=300&q=80" alt="Food collection combo"></span><span>Combos</span></button>
+      <button class="category" onclick="selectCategory('All')"><span class="cat-icon"><img loading="lazy" src="https://images.unsplash.com/photo-1490645935967-10de6ba17061?auto=format&fit=crop&w=300&q=80" alt="Fresh food collection"></span><span>New</span></button>
+    </div>
+  </section>
+
+  <section class="offer-banner" onclick="document.getElementById('partners').scrollIntoView({behavior:'smooth'})" role="button" tabindex="0">
+    <div class="coin">B5</div>
+    <div class="offer-copy"><strong>Partner offers &amp; rewards</strong><span>Use B5 Coins at selected local shops.</span><b>EXPLORE OFFERS&nbsp; →</b></div>
+  </section>
+
+  <section class="section" id="products">
+    <div class="section-head"><div><h3>Magizh favourites</h3><p>Traditional goodness, delivered to you</p></div><button class="textlink" onclick="resetFilter()">Clear filter</button></div>
+    <div class="products" id="productGrid">
+      <article class="product" data-category="Podi" data-name="Poondu Podi">
+        <div class="product-img"><img src="https://images.unsplash.com/photo-1596040033229-a9821ebd058d?auto=format&fit=crop&w=500&q=80" alt="Spices and podi" /><span class="pill">Bestseller</span></div>
+        <div class="product-body"><h4>Poondu Podi</h4><div class="weight">250 g · Traditional podi</div><div class="price-line"><span class="price">₹120</span><span class="old">₹150</span><span class="discount">20% OFF</span></div><button class="add" onclick="addToCart(this)">＋ Add to cart</button></div>
+      </article>
+      <article class="product" data-category="Thokku" data-name="Karuveppilai Thokku">
+        <div class="product-img"><img src="https://images.unsplash.com/photo-1472476443507-c7a5948772fc?auto=format&fit=crop&w=500&q=80" alt="Fresh green leaves and food" /><span class="pill">Homemade</span></div>
+        <div class="product-body"><h4>Karuveppilai Thokku</h4><div class="weight">250 g · Traditional recipe</div><div class="price-line"><span class="price">₹160</span><span class="old">₹180</span><span class="discount">11% OFF</span></div><button class="add" onclick="addToCart(this)">＋ Add to cart</button></div>
+      </article>
+      <article class="product" data-category="Snacks" data-name="Millet Laddu">
+        <div class="product-img"><img src="https://images.unsplash.com/photo-1601050690597-df0568f70950?auto=format&fit=crop&w=500&q=80" alt="Traditional snack" /><span class="pill">Customer pick</span></div>
+        <div class="product-body"><h4>Millet Laddu</h4><div class="weight">Pack of 6 · Fresh batch</div><div class="price-line"><span class="price">₹90</span><span class="old">₹100</span><span class="discount">10% OFF</span></div><button class="add" onclick="addToCart(this)">＋ Add to cart</button></div>
+      </article>
+      <article class="product" data-category="Soaps" data-name="Kadala Maavu Soap">
+        <div class="product-img"><img src="https://images.unsplash.com/photo-1600857544200-b2f666a9a2ec?auto=format&fit=crop&w=500&q=80" alt="Handmade soap" /><span class="pill">Natural care</span></div>
+        <div class="product-body"><h4>Kadala Maavu Soap</h4><div class="weight">100 g · Handmade</div><div class="price-line"><span class="price">₹75</span><span class="old">₹90</span><span class="discount">17% OFF</span></div><button class="add" onclick="addToCart(this)">＋ Add to cart</button></div>
+      </article>
+    </div>
+  </section>
+
+  <section class="section" id="partners">
+    <div class="section-head"><div><h3>Partner shops &amp; offers</h3><p>Discover trusted shops near you</p></div><button class="textlink" onclick="toast('Partner directory preview')">View all&nbsp; →</button></div>
+    <div class="partner-card">
+      <img class="partner-img" src="https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=240&q=80" alt="Partner shop" />
+      <div class="partner-info"><strong>Magizh Partner Café</strong><p>📍 Namakkal · Participating B5 partner</p><span class="partner-offer">30% BILL VALUE IN COINS</span></div>
+      <button class="textlink" onclick="toast('Partner offer details preview')">›</button>
+    </div>
+  </section>
+  <p class="footer-note">Made with care by Magizh · Shop local. Share goodness.</p>
+
+  <nav class="bottomnav" aria-label="Main navigation">
+    <button class="navitem active" onclick="setNav(this,'Home')"><span class="navicon">⌂</span><span>Home</span></button>
+    <button class="navitem" onclick="setNav(this,'Shop')"><span class="navicon">▦</span><span>Shop</span></button>
+    <button class="navitem" onclick="setNav(this,'Partners')"><span class="navicon">♧</span><span>Partners</span></button>
+    <button class="navitem" onclick="setNav(this,'Orders')"><span class="navicon">▣</span><span>My Orders</span></button>
+    <button class="navitem" onclick="setNav(this,'Wallet')"><span class="navicon">◉</span><span>Wallet</span></button>
+  </nav>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+let cartCount=0, toastTimer;
+function toast(message){const el=document.getElementById('toast');el.textContent=message;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),1800)}
+function addToCart(button){cartCount++;document.getElementById('cartCount').textContent=cartCount;button.textContent='✓ Added';button.classList.add('added');toast('Added to cart')}
+function filterProducts(){const q=document.getElementById('search').value.toLowerCase();document.querySelectorAll('.product').forEach(p=>p.style.display=p.dataset.name.toLowerCase().includes(q)?'':'none')}
+function selectCategory(category){document.querySelectorAll('.product').forEach(p=>p.style.display=category==='All'||p.dataset.category===category?'':'none');document.getElementById('products').scrollIntoView({behavior:'smooth'});toast(category==='All'?'Showing all products':'Category: '+category)}
+function resetFilter(){document.getElementById('search').value='';document.querySelectorAll('.product').forEach(p=>p.style.display='');toast('Showing all sample products')}
+function setNav(button,label){document.querySelectorAll('.navitem').forEach(n=>n.classList.remove('active'));button.classList.add('active');if(label==='Shop')document.getElementById('products').scrollIntoView({behavior:'smooth'});else if(label==='Partners')document.getElementById('partners').scrollIntoView({behavior:'smooth'});else if(label!=='Home')toast(label+' page preview')}
+</script>
+</body>
+</html>
