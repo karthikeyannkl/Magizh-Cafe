@@ -4,18 +4,6 @@ import path from 'node:path';
 const root = process.cwd();
 const entries = [
   {
-    "file": "dist__assets__index-BPvh3h-O.js",
-    "target": "dist/assets/index-BPvh3h-O.js"
-  },
-  {
-    "file": "dist__assets__index-DJmk7Jq4.css",
-    "target": "dist/assets/index-DJmk7Jq4.css"
-  },
-  {
-    "file": "dist__index.html",
-    "target": "dist/index.html"
-  },
-  {
     "file": "server__api.js",
     "target": "server/api.js"
   },

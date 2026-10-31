@@ -1,18 +1,26 @@
-MAGIZH B5 MOBILE UI FIXES
+# Magizh B5 Mobile / Deployment Verification Notes
 
-Changes in this package:
-1. Removed the Ecosystem Portals (Partner / Sales Leader / Admin) links from the customer footer. Staff portals remain available through their dedicated routes and role-based access.
-2. Tightened the customer header on narrow screens: brand can shrink, tagline is hidden on mobile, coin label is compact, and account control does not force a wide row.
-3. Admin navigation tabs now wrap onto multiple rows on narrow screens instead of forcing a very wide horizontal tab strip.
-4. Added responsive overflow safeguards.
+## Verified from the uploaded source
+- `src/App.tsx` does not contain the Customer Footer `ECOSYSTEM PORTALS` section or direct Partner / Sales Leader / Admin portal links.
+- Admin tab navigation in `src/components/admin/AdminPanel.tsx` uses wrapping flex layout at narrow widths.
+- Global CSS includes viewport-width and horizontal-overflow safeguards.
+- Checkout reads `VITE_MERCHANT_UPI_ID` and creates a UPI deep link with amount and order number. UTR submission leaves the order pending for Admin verification.
 
-IMPORTANT DEPLOYMENT:
-This package intentionally omits the old prebuilt dist bundle so the previous UI cannot be served accidentally.
-On Render, use:
-  Build Command: npm install && npm run build
-  Start Command: npm start
-The build command must complete successfully before the service starts.
+## Critical correction in this package
+The uploaded ZIP contained old prebuilt files (`dist__index.html` and `dist__assets__...js/css`). The old JavaScript bundle still contained the `ECOSYSTEM PORTALS` footer. The old `restore-structure.js` copied those stale compiled files back into `dist/`. This could make the old screen appear even though the source files were corrected.
 
-UPI merchant ID is configured in .env.example as VITE_MERCHANT_UPI_ID. Set the same value in Render Environment:
-  VITE_MERCHANT_UPI_ID=magizhcafee-3@okhdfcbank
-Do not treat opening a UPI app as payment confirmation. Verify the credit in the merchant bank/UPI app before marking an order paid.
+This corrected package removes those stale compiled files and changes `restore-structure.js` so it restores only source/server files. Render must build a fresh `dist/` from the corrected source.
+
+## Render settings
+- Build Command: `npm install && npm run build`
+- Start Command: `npm start`
+- Environment Variable:
+  - Key: `VITE_MERCHANT_UPI_ID`
+  - Value: `magizhcafee-3@okhdfcbank`
+
+After changing the environment variable, trigger a fresh deployment so Vite embeds it in the frontend build.
+
+## Important limitations still requiring cloud integration
+The React `StorageService` currently uses browser LocalStorage for order and coin state. This means separate customer and admin devices do not yet share authoritative order/payment/coin state through the backend database. Do not use this as a production payment-confirmation system until the frontend is connected to authenticated server APIs and the database.
+
+UPI app launch and UTR submission are not proof of payment. Admin must verify the actual bank/UPI credit before confirming an order.

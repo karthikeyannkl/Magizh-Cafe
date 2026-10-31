@@ -1,0 +1,22 @@
+MAGIZH B5 — VERIFIED SOURCE PACKAGE
+
+This ZIP is a source package, not a prebuilt dist deployment.
+Upload/push these files to the same Render-connected Git repository.
+
+Render:
+Build Command: npm install && npm run build
+Start Command: npm start
+
+Do not use `node server.js` as the start command for this Vite + Express project.
+Do not skip the build command. The app must be built from src/ so the stale old UI cannot be served.
+
+Set VITE_MERCHANT_UPI_ID in Render Environment:
+magizhcafee-3@okhdfcbank
+
+After deployment, test:
+1. Customer page footer: no Ecosystem Portals links.
+2. Customer page at 360px / 390px / 430px widths.
+3. Admin page at the same widths.
+4. UPI deep link fields and manual Admin payment verification.
+
+Payment and order data are still LocalStorage-based in this codebase; cross-device Admin synchronization needs a separate API/database integration before production use.
