@@ -76,14 +76,13 @@ Once the deployment finishes:
 1. Check the health endpoint: `https://your-service-name.onrender.com/api/health`
    - Expect: `{"status":"healthy","service":"Magizh Shopping & B5 Coin Ecosystem Backend","database":"connected","version":"1.0.0"}`
 2. Verify all four dedicated routes directly in the browser (supports direct URL navigation and browser refresh):
-   - **Customer Storefront (`/`)**: 2-column mobile layout, product catalog, cart, checkout with 50% B5 Coin cap.
-   - **Partner Portal (`/partner`)**: Franchise Partner Shop login and in-store QR/PIN redemption dashboard.
+   - **Customer Storefront (`/`)**: 2-column mobile layout, product catalog, cart, checkout with 50% B5 Coin cap, All-India PIN code Address Book, Order Tracking without demo simulator buttons, and Customer In-Store Bill Approval.
+   - **Partner Portal (`/partner`)**: Franchise Partner Shop registration with live PIN lookup & status checker, approved partner login, and In-Store POS Billing terminal with 50% B5 Coin redemption cap.
    - **Referral Leader Hub (`/referral`)**: Multi-level team genealogy and sales earnings dashboard.
-   - **Admin Management Portal (`/admin`)**: Protected by server-side bearer token authentication (`admin@magizh.com` / `admin123`) for product catalog CRUD, categories, banners, and audit logs.
+   - **Admin Management Portal (`/admin`)**: Protected by server-side bearer token authentication (`admin@magizh.in` / `admin123`) for product catalog CRUD, categories, banners, Partner Applications approval/rejection, In-Store Bills verification, B5 Coin reward credits with persistent notifications, and audit logs.
 3. Verify server-side security:
    - Direct API calls to mutate catalog (`POST /api/products`, `PUT /api/products/:id`) without an admin token are rejected with HTTP 401/403.
+   - Partner application decisions and in-store bill settlements require verified Bearer authentication.
    - Ordinary customers and partner accounts cannot access the admin management portal or administrative API endpoints.
-
-
-### Merchant UPI configuration
-The frontend uses `VITE_MERCHANT_UPI_ID` at build time. Set it in Render Environment Variables to `magizhcafee-3@okhdfcbank` before triggering a new deployment (or keep the included `.env` for a local build). The UPI ID is public payment-routing information; never place bank passwords, OTPs, or API secrets in frontend variables. UPI deep-link launch and UTR submission do not independently verify that money was received; confirm the credit in the merchant bank/UPI app before marking an order paid.
+4. Royal Celebration Animations:
+   - Built-in canvas ribbon confetti, rotating 3D golden coins, and animated counters for Registration Success (Event 13), B5 Coin Credit (Event 14), Order Success (Event 15), and Coin Redemption (Event 16).

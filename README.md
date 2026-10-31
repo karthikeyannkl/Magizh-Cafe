@@ -164,15 +164,3 @@ node test-suite-full.js
 ## 📦 Production Deployment (Render)
 
 Refer to [`RENDER_DEPLOYMENT.md`](./RENDER_DEPLOYMENT.md) for step-by-step instructions on deploying the full-stack service to Render with automated builds, environment variables, and persistent data storage.
-
-
-## Temporary UPI payment setup
-
-- Set `VITE_MERCHANT_UPI_ID` in Render Environment Variables to the verified Magizh merchant UPI ID (example format only: `merchant@bank`). Do not use a personal UPI ID unless it is the approved business collection account.
-- Customer checkout opens a UPI app with merchant UPI ID, exact payable amount, and order number prefilled.
-- Customer submits the UTR/reference after payment. The order remains `Pending Payment` until Admin checks the actual bank/UPI statement and clicks **Verify Payment & Confirm Order**.
-- UPI reference text or a screenshot is not proof of payment by itself. Verify the credit in the merchant account before approving.
-- Card / Net Banking / Gateway checkout is displayed as **Coming Soon · Disabled**. Add gateway credentials only after merchant onboarding; keep all secret keys server-side, never in `VITE_` variables.
-- B5 Coins are deducted only after Admin verifies the UPI payment.
-
-This temporary UPI flow is a manual verification workflow, not an automated payment gateway. It does not automatically detect payment success or refunds.
