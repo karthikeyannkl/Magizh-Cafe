@@ -181,6 +181,12 @@ export interface Order {
   updatedAt: string;
   timeline: OrderTimeline[];
   partnerId?: string;
+  paymentReference?: string;
+  paymentProvider?: string;
+  paymentSubmittedAt?: string;
+  paymentVerifiedAt?: string;
+  paymentVerifiedBy?: string;
+  paymentFailureReason?: string;
 }
 
 export interface B5Transaction {

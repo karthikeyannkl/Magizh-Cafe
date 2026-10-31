@@ -83,3 +83,7 @@ Once the deployment finishes:
 3. Verify server-side security:
    - Direct API calls to mutate catalog (`POST /api/products`, `PUT /api/products/:id`) without an admin token are rejected with HTTP 401/403.
    - Ordinary customers and partner accounts cannot access the admin management portal or administrative API endpoints.
+
+
+### Merchant UPI configuration
+The frontend uses `VITE_MERCHANT_UPI_ID` at build time. Set it in Render Environment Variables to `magizhcafee-3@okhdfcbank` before triggering a new deployment (or keep the included `.env` for a local build). The UPI ID is public payment-routing information; never place bank passwords, OTPs, or API secrets in frontend variables. UPI deep-link launch and UTR submission do not independently verify that money was received; confirm the credit in the merchant bank/UPI app before marking an order paid.

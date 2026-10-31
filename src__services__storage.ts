@@ -540,6 +540,35 @@ export const StorageService = {
     emit('ordersChanged', orders);
   },
 
+  updateOrderPaymentReference(orderId: string, reference: string): Order | undefined {
+    const orders = this.getOrders();
+    const order = orders.find((o) => o.id === orderId || o.orderNumber === orderId);
+    if (!order || order.paymentStatus !== 'Pending') return undefined;
+    order.paymentReference = reference.trim();
+    order.paymentProvider = 'UPI';
+    order.paymentSubmittedAt = new Date().toISOString();
+    order.updatedAt = new Date().toISOString();
+    order.timeline.push({ status: 'Pending Payment', timestamp: new Date().toISOString(), note: `Customer submitted UPI reference ${reference.trim()}. Awaiting administrator verification.` });
+    setStorage(KEYS.ORDERS, orders);
+    emit('ordersChanged', orders);
+    return order;
+  },
+
+  verifyOrderPayment(orderId: string, adminName: string = 'Administrator'): Order | undefined {
+    const orders = this.getOrders();
+    const order = orders.find((o) => o.id === orderId || o.orderNumber === orderId);
+    if (!order || order.paymentStatus !== 'Pending' || !order.paymentReference) return undefined;
+    order.paymentStatus = 'Paid';
+    order.orderStatus = 'Confirmed';
+    order.paymentVerifiedAt = new Date().toISOString();
+    order.paymentVerifiedBy = adminName;
+    order.updatedAt = new Date().toISOString();
+    order.timeline.push({ status: 'Confirmed', timestamp: new Date().toISOString(), note: `UPI payment manually verified by ${adminName}. Reference: ${order.paymentReference}` });
+    setStorage(KEYS.ORDERS, orders);
+    emit('ordersChanged', orders);
+    return order;
+  },
+
   updateOrderStatus(orderId: string, status: OrderStatus, note: string = ''): Order | undefined {
     const orders = this.getOrders();
     const order = orders.find((o) => o.id === orderId || o.orderNumber === orderId);

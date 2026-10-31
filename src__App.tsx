@@ -18,7 +18,6 @@ import { PartnerAuthGuard } from './components/common/PartnerAuthGuard';
 import { AdminAuthGuard } from './components/common/AdminAuthGuard';
 import { StorageService, subscribe } from './services/storage';
 import { Product, WeightVariant, Coupon, Order, User } from './types';
-import { Store, Shield, TrendingUp, Sparkles, Heart, ExternalLink } from 'lucide-react';
 
 // Path-to-Route Mapper
 export const getRouteFromPath = (pathname: string): string => {
@@ -263,10 +262,12 @@ export default function App() {
     currentTab !== 'partner' &&
     currentTab !== 'partner-orders' &&
     currentTab !== 'partner-inventory' &&
-    currentTab !== 'admin-orders';
+    currentTab !== 'admin-orders' &&
+    currentTab !== 'referral' &&
+    currentTab !== 'sales';
 
   return (
-    <div className="min-h-screen flex flex-col bg-cream-100 text-darkbrown-900 selection:bg-magizh-100 selection:text-magizh-900">
+    <div className="min-h-screen w-full min-w-0 max-w-full flex flex-col overflow-x-clip bg-cream-100 text-darkbrown-900 selection:bg-magizh-100 selection:text-magizh-900">
       {/* Top Header */}
       <Header
         currentTab={currentTab}
@@ -275,12 +276,12 @@ export default function App() {
       />
 
       {/* Main Dynamic View */}
-      <main className="flex-1 w-full">{renderContent()}</main>
+      <main className="flex-1 w-full min-w-0 max-w-full overflow-x-clip">{renderContent()}</main>
 
       {/* Customer Footer with Direct Route Links */}
       {isCustomerView && (
         <footer className="mt-12 bg-white border-t border-cream-300 py-10 px-4 pb-24 md:pb-10 text-darkbrown-900">
-          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="space-y-2">
               <div className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-lg bg-magizh-800 text-white flex items-center justify-center font-black">
@@ -319,41 +320,6 @@ export default function App() {
               </ul>
             </div>
 
-            {/* Portal Access Links */}
-            <div>
-              <h4 className="text-xs font-black uppercase tracking-wider text-darkbrown-900 mb-3">
-                Ecosystem Portals
-              </h4>
-              <ul className="text-xs space-y-2 font-semibold">
-                <li>
-                  <button
-                    onClick={() => navigateTo('partner')}
-                    className="flex items-center gap-1.5 text-blue-800 hover:text-blue-950 hover:underline"
-                  >
-                    <Store className="w-3.5 h-3.5" />
-                    <span>Partner Portal (/partner)</span>
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => navigateTo('referral')}
-                    className="flex items-center gap-1.5 text-purple-800 hover:text-purple-950 hover:underline"
-                  >
-                    <TrendingUp className="w-3.5 h-3.5" />
-                    <span>Sales Leader Portal (/referral)</span>
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => navigateTo('admin')}
-                    className="flex items-center gap-1.5 text-red-800 hover:text-red-950 hover:underline"
-                  >
-                    <Shield className="w-3.5 h-3.5" />
-                    <span>Admin Console (/admin)</span>
-                  </button>
-                </li>
-              </ul>
-            </div>
           </div>
 
           <div className="max-w-7xl mx-auto mt-8 pt-4 border-t border-cream-200 flex flex-col sm:flex-row items-center justify-between text-[11px] text-gray-500 gap-2">

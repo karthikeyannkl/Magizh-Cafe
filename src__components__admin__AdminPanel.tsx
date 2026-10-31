@@ -157,8 +157,30 @@ export const AdminPanel: React.FC = () => {
     showNotification(`Partner ${partner.shopName} is now ${nextStatus}!`);
   };
 
+  // Verify manual UPI payment only after checking the merchant bank / UPI app statement.
+  const handleVerifyOrderPayment = (orderId: string) => {
+    const pending = StorageService.getOrderById(orderId);
+    if (!pending || pending.paymentStatus !== 'Pending' || !pending.paymentReference) { showNotification('Payment cannot be verified. Check the submitted UPI reference.'); return; }
+    if (pending.coinsRedeemed > 0) {
+      const account = StorageService.getCoinAccount(pending.customerId);
+      const deduction = processCoinDeduction(account, pending.coinsRedeemed, pending.eligibleMerchandiseAmount, pending.orderNumber, StorageService.getCoinRules().maxRedemptionCapPercentage);
+      if (!deduction.success) { showNotification(deduction.error || 'Could not redeem B5 Coins. Payment not marked verified.'); return; }
+      if (deduction.transaction) { deduction.transaction.orderNumber = pending.orderNumber; StorageService.recordCoinTransaction(deduction.transaction); }
+      StorageService.saveCoinAccount(deduction.updatedAccount);
+    }
+    const updated = StorageService.verifyOrderPayment(orderId, 'Administrator');
+    if (!updated) { showNotification('Payment verification failed.'); return; }
+    StorageService.logAction('admin', 'Administrator', 'VERIFY_UPI_PAYMENT', `Verified UPI payment for ${updated.orderNumber}; reference ${updated.paymentReference}`);
+    showNotification(`Payment verified, B5 Coins deducted (if used), and order ${updated.orderNumber} confirmed.`);
+  };
+
   // 2. Order Status Transition
   const handleUpdateOrderStatus = (orderId: string, newStatus: any) => {
+    const targetOrder = StorageService.getOrderById(orderId);
+    if (targetOrder && targetOrder.paymentMethod !== 'Cash on Delivery' && targetOrder.paymentStatus !== 'Paid' && newStatus !== 'Cancelled') {
+      showNotification('Verify payment first. Unpaid orders cannot move to fulfilment.');
+      return;
+    }
     const updated = StorageService.updateOrderStatus(orderId, newStatus, 'Status updated by Administrator');
 
     if (newStatus === 'Completed' && updated && !updated.rewardCoinsCredited) {
@@ -764,9 +786,9 @@ export const AdminPanel: React.FC = () => {
   const lowStockCount = products.filter((p) => p.variants.some((v) => v.stock <= 10)).length;
 
   return (
-    <div className="max-w-7xl mx-auto px-3 sm:px-6 py-4 pb-28 space-y-6">
+    <div className="w-full min-w-0 max-w-7xl mx-auto px-2 sm:px-6 py-3 sm:py-4 pb-28 space-y-4 sm:space-y-6 overflow-x-clip">
       {/* Admin Top Banner */}
-      <div className="bg-gradient-to-r from-red-950 via-darkbrown-900 to-red-900 text-white rounded-3xl p-5 sm:p-6 shadow-card border border-red-800/40">
+      <div className="bg-gradient-to-r from-red-950 via-darkbrown-900 to-red-900 text-white rounded-2xl sm:rounded-3xl p-3 sm:p-6 shadow-card border border-red-800/40">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
             <div className="w-14 h-14 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center text-white border border-white/20 shrink-0">
@@ -774,7 +796,7 @@ export const AdminPanel: React.FC = () => {
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-lg sm:text-xl font-extrabold">Magizh Master Administration Hub</h1>
+                <h1 className="text-base sm:text-xl font-extrabold break-words">Magizh Master Administration Hub</h1>
                 <span className="bg-red-500/20 text-red-300 border border-red-400/40 text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase">
                   Root Admin
                 </span>
@@ -805,7 +827,7 @@ export const AdminPanel: React.FC = () => {
       )}
 
       {/* Admin Tabs */}
-      <div className="flex overflow-x-auto gap-2 border-b border-cream-300 pb-2 text-xs font-bold scrollbar-none">
+      <div className="flex w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain gap-2 border-b border-cream-300 pb-2 text-xs font-bold scrollbar-none">
         {[
           { id: 'orders', label: `Orders (${orders.length})` },
           { id: 'catalog', label: `Products (${products.length})` },
@@ -907,11 +929,21 @@ export const AdminPanel: React.FC = () => {
                     <p className="text-gray-700">
                       {ord.shippingAddress?.name}, {ord.shippingAddress?.addressLine}, {ord.shippingAddress?.district} - {ord.shippingAddress?.pinCode}
                     </p>
-                    <p className="text-[10px] text-gray-500 mt-1">
-                      Payment: {ord.paymentMethod} &bull; Status: {ord.paymentStatus}
+                    <p className="text-[10px] text-gray-700 mt-1">
+                      Payment: {ord.paymentMethod} &bull; Status: <strong>{ord.paymentStatus}</strong>
                     </p>
+                    <p className="text-[10px] text-gray-600 mt-1">UPI Reference: <strong>{ord.paymentReference || 'Not submitted'}</strong></p>
+                    {ord.paymentSubmittedAt && <p className="text-[10px] text-gray-500">Submitted: {new Date(ord.paymentSubmittedAt).toLocaleString()}</p>}
+                    {ord.paymentVerifiedAt && <p className="text-[10px] text-emerald-700">Verified: {new Date(ord.paymentVerifiedAt).toLocaleString()} by {ord.paymentVerifiedBy || 'Admin'}</p>}
                   </div>
                 </div>
+
+                {ord.paymentMethod === 'UPI' && ord.paymentStatus === 'Pending' && (
+                  <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <span className="text-[11px] text-amber-900">Verify the UTR against the actual bank / UPI statement before confirming.</span>
+                    <button onClick={() => handleVerifyOrderPayment(ord.id)} disabled={!ord.paymentReference} className="px-3 py-2 rounded-lg bg-emerald-700 text-white text-[11px] font-bold disabled:opacity-40">Verify Payment & Confirm Order</button>
+                  </div>
+                )}
 
                 {/* Status Advancement Controls */}
                 <div className="pt-2 border-t border-cream-200 flex flex-wrap items-center justify-between gap-2">
@@ -921,7 +953,7 @@ export const AdminPanel: React.FC = () => {
                       <button
                         key={st}
                         onClick={() => handleUpdateOrderStatus(ord.id, st)}
-                        disabled={ord.orderStatus === st}
+                        disabled={ord.orderStatus === st || (ord.paymentMethod !== 'Cash on Delivery' && ord.paymentStatus !== 'Paid' && st !== 'Cancelled')}
                         className={`px-2 py-1 rounded-lg text-[10px] font-bold transition-all ${
                           ord.orderStatus === st
                             ? 'bg-darkbrown-900 text-white cursor-default'

@@ -7,3 +7,12 @@
     @apply bg-cream-100 text-darkbrown-900;
   }
 }
+
+
+/* Mobile viewport safety: prevent admin tables/cards from widening the whole page. */
+@layer base {
+  *, *::before, *::after { box-sizing: border-box; }
+  html, body, #root { width: 100%; max-width: 100%; min-width: 0; }
+  html, body { overflow-x: hidden; }
+  img, video, canvas, svg { max-width: 100%; }
+}

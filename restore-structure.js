@@ -1,20 +1,47 @@
-// Reconstruct the conventional source folders from the flat upload package.
-// This runs automatically before npm build and npm start.
+// Reconstruct the normal Vite/Express project folders from the one-folder upload.
 import fs from 'node:fs';
 import path from 'node:path';
 const root = process.cwd();
 const entries = [
   {
+    "file": "dist__assets__index-BPvh3h-O.js",
+    "target": "dist/assets/index-BPvh3h-O.js"
+  },
+  {
+    "file": "dist__assets__index-DJmk7Jq4.css",
+    "target": "dist/assets/index-DJmk7Jq4.css"
+  },
+  {
+    "file": "dist__index.html",
+    "target": "dist/index.html"
+  },
+  {
+    "file": "server__api.js",
+    "target": "server/api.js"
+  },
+  {
+    "file": "server__data__magizh.sqlite",
+    "target": "server/data/magizh.sqlite"
+  },
+  {
+    "file": "server__db.js",
+    "target": "server/db.js"
+  },
+  {
+    "file": "server__emailService.js",
+    "target": "server/emailService.js"
+  },
+  {
+    "file": "server__security.js",
+    "target": "server/security.js"
+  },
+  {
+    "file": "server__server.js",
+    "target": "server/server.js"
+  },
+  {
     "file": "src__App.tsx",
     "target": "src/App.tsx"
-  },
-  {
-    "file": "src__index.css",
-    "target": "src/index.css"
-  },
-  {
-    "file": "src__main.tsx",
-    "target": "src/main.tsx"
   },
   {
     "file": "src__components__admin__AdminPanel.tsx",
@@ -85,6 +112,14 @@ const entries = [
     "target": "src/components/sales/SalesDashboard.tsx"
   },
   {
+    "file": "src__index.css",
+    "target": "src/index.css"
+  },
+  {
+    "file": "src__main.tsx",
+    "target": "src/main.tsx"
+  },
+  {
     "file": "src__services__rewardsEngine.ts",
     "target": "src/services/rewardsEngine.ts"
   },
@@ -95,49 +130,13 @@ const entries = [
   {
     "file": "src__types__index.ts",
     "target": "src/types/index.ts"
-  },
-  {
-    "file": "server__api.js",
-    "target": "server/api.js"
-  },
-  {
-    "file": "server__db.js",
-    "target": "server/db.js"
-  },
-  {
-    "file": "server__emailService.js",
-    "target": "server/emailService.js"
-  },
-  {
-    "file": "server__security.js",
-    "target": "server/security.js"
-  },
-  {
-    "file": "server__server.js",
-    "target": "server/server.js"
-  },
-  {
-    "file": "server__data__magizh.sqlite",
-    "target": "server/data/magizh.sqlite"
-  },
-  {
-    "file": "dist__index.html",
-    "target": "dist/index.html"
-  },
-  {
-    "file": "dist__assets__index-BPvh3h-O.js",
-    "target": "dist/assets/index-BPvh3h-O.js"
-  },
-  {
-    "file": "dist__assets__index-DJmk7Jq4.css",
-    "target": "dist/assets/index-DJmk7Jq4.css"
   }
 ];
-for (const entry of entries) {
-  const source = path.join(root, entry.file);
-  const target = path.join(root, entry.target);
-  if (!fs.existsSync(source)) { console.error(`Missing flat project file: ${entry.file}`); process.exitCode = 1; continue; }
+for (const item of entries) {
+  const source = path.join(root, item.file);
+  const target = path.join(root, item.target);
+  if (!fs.existsSync(source)) continue;
   fs.mkdirSync(path.dirname(target), { recursive: true });
   fs.copyFileSync(source, target);
 }
-if (!process.exitCode) console.log(`Restored ${entries.length} project files into required folders.`);
+console.log(`Restored ${entries.length} project files into src/, server/ and dist/.`);

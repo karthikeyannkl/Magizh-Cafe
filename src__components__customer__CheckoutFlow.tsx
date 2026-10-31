@@ -100,6 +100,10 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('UPI');
   const [isProcessing, setIsProcessing] = useState(false);
   const [confirmedOrder, setConfirmedOrder] = useState<Order | null>(null);
+  const [pendingPaymentOrder, setPendingPaymentOrder] = useState<Order | null>(null);
+  const [upiReference, setUpiReference] = useState('');
+  const merchantUpiId = (import.meta as any).env?.VITE_MERCHANT_UPI_ID || '';
+  const [paymentError, setPaymentError] = useState('');
 
   // Recalculate if values change
   useEffect(() => {
@@ -153,93 +157,61 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
 
   const handlePlaceOrder = () => {
     const selectedAddress = addresses.find((a) => a.id === selectedAddressId);
-    if (!selectedAddress) {
-      alert('Please select or add a delivery address');
+    if (!selectedAddress) { alert('Please select or add a delivery address'); return; }
+    if (redemptionError) { alert(redemptionError); return; }
+    if (!merchantUpiId || !merchantUpiId.includes('@')) {
+      setPaymentError('Merchant UPI ID is not configured yet. Add VITE_MERCHANT_UPI_ID in Render Environment Variables before accepting UPI payments.');
       return;
     }
-
-    if (redemptionError) {
-      alert(redemptionError);
-      return;
-    }
-
+    setPaymentError('');
     setIsProcessing(true);
 
-    setTimeout(() => {
-      // 1. Process coin deduction atomically
-      const deductionResult = processCoinDeduction(
-        coinAccount,
-        coinsToRedeem,
-        eligibleAmount,
-        '',
-        coinRules.maxRedemptionCapPercentage
-      );
+    const uniqueOrderNumber = `MAG-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
+    // Coins are reserved in the order only. Actual deduction happens after Admin verifies UPI payment.
 
-      if (!deductionResult.success) {
-        setIsProcessing(false);
-        alert(deductionResult.error || 'Failed to redeem coins');
-        return;
-      }
+    const now = new Date().toISOString();
+    const newOrder: Order = {
+      id: `ord-${Date.now()}`, orderNumber: uniqueOrderNumber, customerId: currentUser.id, customerName: currentUser.name, customerPhone: currentUser.mobile,
+      shippingAddress: selectedAddress,
+      items: cart.map((item) => ({ productId: item.productId, name: item.name, variantWeight: item.variantWeight, price: item.price, quantity: item.quantity, total: item.price * item.quantity, image: item.image })),
+      merchandiseSubtotal, couponCode: coupon?.code, couponDiscount, eligibleMerchandiseAmount: eligibleAmount, coinsRedeemed: coinsToRedeem, coinDiscountAmount, deliveryCharge, taxAmount, finalPayableAmount,
+      paymentMethod: 'UPI', paymentStatus: 'Pending', orderStatus: 'Pending Payment', rewardCoinsEarned: estimatedRewardCoins, rewardCoinsCredited: false, createdAt: now, updatedAt: now,
+      timeline: [{ status: 'Pending Payment', timestamp: now, note: `Order created. Awaiting UPI payment of ₹${finalPayableAmount}; payment is not yet verified.` }],
+    };
+    StorageService.createOrder(newOrder);
+    setPendingPaymentOrder(newOrder);
+    setIsProcessing(false);
 
-      const uniqueOrderNumber = `MAG-${new Date().getFullYear()}-${Math.floor(10000 + Math.random() * 90000)}`;
-
-      // 2. Save updated coin account & ledger
-      if (deductionResult.transaction) {
-        deductionResult.transaction.orderNumber = uniqueOrderNumber;
-        StorageService.recordCoinTransaction(deductionResult.transaction);
-      }
-      StorageService.saveCoinAccount(deductionResult.updatedAccount);
-      setCoinAccount(deductionResult.updatedAccount);
-
-      // 3. Assemble and create Order
-      const newOrder: Order = {
-        id: `ord-${Date.now()}`,
-        orderNumber: uniqueOrderNumber,
-        customerId: currentUser.id,
-        customerName: currentUser.name,
-        customerPhone: currentUser.mobile,
-        shippingAddress: selectedAddress,
-        items: cart.map((item) => ({
-          productId: item.productId,
-          name: item.name,
-          variantWeight: item.variantWeight,
-          price: item.price,
-          quantity: item.quantity,
-          total: item.price * item.quantity,
-          image: item.image,
-        })),
-        merchandiseSubtotal,
-        couponCode: coupon?.code,
-        couponDiscount,
-        eligibleMerchandiseAmount: eligibleAmount,
-        coinsRedeemed: coinsToRedeem,
-        coinDiscountAmount,
-        deliveryCharge,
-        taxAmount,
-        finalPayableAmount,
-        paymentMethod,
-        paymentStatus: 'Paid', // In demo mock mode, automatically marks as paid
-        orderStatus: 'Confirmed',
-        rewardCoinsEarned: estimatedRewardCoins,
-        rewardCoinsCredited: false, // credited upon order delivery/completion!
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        timeline: [
-          {
-            status: 'Confirmed',
-            timestamp: new Date().toISOString(),
-            note: `Order placed successfully. Mock payment of ₹${finalPayableAmount} verified via ${paymentMethod}.`,
-          },
-        ],
-      };
-
-      StorageService.createOrder(newOrder);
-      StorageService.clearCart();
-      setIsProcessing(false);
-      setConfirmedOrder(newOrder);
-      onOrderSuccess(newOrder);
-    }, 800);
+    const upiUrl = `upi://pay?pa=${encodeURIComponent(merchantUpiId)}&pn=${encodeURIComponent('Magizh Shopping')}&am=${encodeURIComponent(finalPayableAmount.toFixed(2))}&cu=INR&tn=${encodeURIComponent(`Order ${uniqueOrderNumber}`)}`;
+    window.location.href = upiUrl;
   };
+
+  const handleSubmitUpiReference = () => {
+    if (!pendingPaymentOrder || upiReference.trim().length < 6) { setPaymentError('Enter a valid UPI transaction reference / UTR number (at least 6 characters).'); return; }
+    const updated = StorageService.updateOrderPaymentReference(pendingPaymentOrder.id, upiReference.trim());
+    if (!updated) { setPaymentError('Could not save the UPI reference. Please contact support.'); return; }
+    StorageService.clearCart();
+    setPendingPaymentOrder(null);
+    onOrderSuccess(updated);
+    alert(`Order ${updated.orderNumber} submitted. Payment is pending administrator verification. The order is NOT confirmed yet.`);
+  };
+
+  if (pendingPaymentOrder) {
+    return (
+      <div className="max-w-xl mx-auto p-4 sm:p-6 space-y-4">
+        <div className="bg-white border border-cream-300 rounded-2xl p-5 space-y-3">
+          <h2 className="text-lg font-black text-darkbrown-900">Complete UPI Payment</h2>
+          <p className="text-sm text-gray-600">Order {pendingPaymentOrder.orderNumber} · Amount ₹{pendingPaymentOrder.finalPayableAmount}</p>
+          <p className="text-xs text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3">Your UPI app should open. If it did not open, tap the button below. Do not mark payment as successful unless money was actually debited.</p>
+          <button onClick={() => { const u = `upi://pay?pa=${encodeURIComponent(merchantUpiId)}&pn=${encodeURIComponent('Magizh Shopping')}&am=${pendingPaymentOrder.finalPayableAmount.toFixed(2)}&cu=INR&tn=${encodeURIComponent(`Order ${pendingPaymentOrder.orderNumber}`)}`; window.location.href = u; }} className="w-full rounded-xl bg-magizh-800 text-white font-bold py-3">Open UPI App · Pay ₹{pendingPaymentOrder.finalPayableAmount}</button>
+          <label className="block text-xs font-bold text-darkbrown-900">UPI UTR / Transaction Reference Number</label>
+          <input value={upiReference} onChange={(e) => setUpiReference(e.target.value)} placeholder="Enter 12-digit UTR / transaction reference" className="w-full border border-cream-300 rounded-xl p-3 text-sm" />
+          <button onClick={handleSubmitUpiReference} className="w-full rounded-xl border border-magizh-700 text-magizh-900 font-bold py-3">I have paid — Submit reference</button>
+          <p className="text-[11px] text-gray-500">Order confirmation will happen only after the Admin verifies the payment in the Admin panel. UTR entry by itself is not proof of payment.</p>
+        </div>
+      </div>
+    );
+  }
 
   // If order confirmed, show celebration & receipt view
   if (confirmedOrder) {
@@ -573,48 +545,30 @@ export const CheckoutFlow: React.FC<CheckoutFlowProps> = ({
                   Choose Payment Method
                 </h3>
               </div>
-              <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded">
-                Mock Mode Active
+              <span className="text-[10px] font-bold text-amber-800 bg-amber-100 px-2 py-0.5 rounded">
+                UPI Manual Verification
               </span>
             </div>
 
-            <div className="grid grid-cols-2 gap-2.5">
-              {[
-                { id: 'UPI', label: 'UPI (GPay, PhonePe, Paytm)', icon: Smartphone },
-                { id: 'Card', label: 'Credit / Debit Card', icon: CreditCard },
-                { id: 'NetBanking', label: 'Net Banking (All Banks)', icon: Building },
-                { id: 'Cash on Delivery', label: 'Cash on Delivery', icon: Banknote },
-              ].map((m) => {
-                const Icon = m.icon;
-                const isSelected = paymentMethod === m.id;
-                return (
-                  <label
-                    key={m.id}
-                    className={`flex items-center gap-2.5 p-3 rounded-xl border cursor-pointer transition-all ${
-                      isSelected
-                        ? 'border-magizh-700 bg-magizh-50 ring-2 ring-magizh-600/30 font-bold'
-                        : 'border-cream-300 hover:border-cream-400 bg-white text-gray-700'
-                    }`}
-                  >
-                    <input
-                      type="radio"
-                      name="paymentMethod"
-                      checked={isSelected}
-                      onChange={() => setPaymentMethod(m.id as PaymentMethod)}
-                      className="text-magizh-700 focus:ring-magizh-600"
-                    />
-                    <Icon className="w-4 h-4 text-magizh-800 shrink-0" />
-                    <span className="text-xs text-darkbrown-900">{m.label}</span>
-                  </label>
-                );
-              })}
+            <div className="space-y-2">
+              <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 opacity-70">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2"><CreditCard className="w-4 h-4"/><span className="text-sm font-bold">Payment Gateway</span></div>
+                  <span className="text-[10px] font-bold rounded-full bg-gray-200 px-2 py-1">Coming Soon · Disabled</span>
+                </div>
+                <p className="text-[11px] text-gray-500 mt-1">UPI, Credit / Debit Card and Net Banking will be enabled after gateway onboarding.</p>
+                <div className="flex gap-2 mt-2 text-[11px] text-gray-500"><span>UPI</span><span>• Card</span><span>• Net Banking</span></div>
+              </div>
+              <div className="rounded-xl border-2 border-magizh-700 bg-magizh-50 p-3">
+                <div className="flex items-center gap-2"><Smartphone className="w-4 h-4 text-magizh-800"/><span className="text-sm font-extrabold text-darkbrown-900">Direct UPI Payment</span><span className="ml-auto text-[10px] bg-emerald-100 text-emerald-800 rounded-full px-2 py-1 font-bold">Available now</span></div>
+                <p className="text-[11px] text-gray-600 mt-1">Pay using GPay, PhonePe, Paytm or any UPI app. The amount and order number will be pre-filled.</p>
+                <p className="text-[11px] font-semibold text-darkbrown-800 mt-2">Amount to pay: ₹{finalPayableAmount}</p>
+              </div>
             </div>
-
-            <div className="text-[11px] text-gray-500 bg-cream-50 p-2.5 rounded-xl border border-cream-200 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>
-                256-bit secure mock payment transaction. No real credit/debit card charge in demo environment.
-              </span>
+            {paymentError && <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg p-2">{paymentError}</div>}
+            <div className="text-[11px] text-amber-800 bg-amber-50 p-2.5 rounded-xl border border-amber-200 flex items-start gap-2">
+              <ShieldCheck className="w-4 h-4 shrink-0 mt-0.5" />
+              <span>After paying in your UPI app, enter the UTR / transaction reference. The order stays Pending until an administrator verifies the payment in the Admin panel. Returning from GPay alone does not confirm payment.</span>
             </div>
           </div>
         </div>
