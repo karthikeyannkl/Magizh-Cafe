@@ -786,7 +786,7 @@ export const AdminPanel: React.FC = () => {
   const lowStockCount = products.filter((p) => p.variants.some((v) => v.stock <= 10)).length;
 
   return (
-    <div className="w-full min-w-0 max-w-7xl mx-auto px-2 sm:px-6 py-3 sm:py-4 pb-28 space-y-4 sm:space-y-6 overflow-x-clip">
+    <div className="w-full min-w-0 max-w-7xl mx-auto px-2 sm:px-6 py-3 sm:py-4 pb-28 space-y-4 sm:space-y-6 overflow-x-hidden">
       {/* Admin Top Banner */}
       <div className="bg-gradient-to-r from-red-950 via-darkbrown-900 to-red-900 text-white rounded-2xl sm:rounded-3xl p-3 sm:p-6 shadow-card border border-red-800/40">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -827,7 +827,7 @@ export const AdminPanel: React.FC = () => {
       )}
 
       {/* Admin Tabs */}
-      <div className="flex w-full min-w-0 max-w-full overflow-x-auto overscroll-x-contain gap-2 border-b border-cream-300 pb-2 text-xs font-bold scrollbar-none">
+      <div className="flex w-full min-w-0 max-w-full flex-wrap gap-2 border-b border-cream-300 pb-2 text-xs font-bold">
         {[
           { id: 'orders', label: `Orders (${orders.length})` },
           { id: 'catalog', label: `Products (${products.length})` },
@@ -844,7 +844,7 @@ export const AdminPanel: React.FC = () => {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id as any)}
-            className={`px-3 py-2 rounded-xl shrink-0 transition-all ${
+            className={`min-w-0 max-w-full whitespace-normal break-words text-left px-3 py-2 rounded-xl transition-all ${
               activeTab === tab.id
                 ? 'bg-red-900 text-white font-extrabold shadow-sm'
                 : 'bg-white text-gray-700 hover:bg-cream-100 border border-cream-300'

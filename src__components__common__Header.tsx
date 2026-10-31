@@ -59,11 +59,11 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, onNavigate, onOpenAu
       </div>
 
       {/* Main App Bar */}
-      <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
+      <div className="w-full min-w-0 max-w-7xl mx-auto px-2 sm:px-4 py-2.5 flex flex-wrap items-center justify-between gap-2">
         {/* Brand Logo & Name */}
         <div 
           onClick={() => onNavigate('home')} 
-          className="flex items-center gap-2 cursor-pointer select-none group"
+          className="flex min-w-0 items-center gap-2 cursor-pointer select-none group shrink"
         >
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-magizh-700 to-magizh-900 flex items-center justify-center text-white font-extrabold shadow-md border border-magizh-600/30 group-hover:scale-105 transition-transform">
             <span className="text-xl">M</span>
@@ -77,14 +77,14 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, onNavigate, onOpenAu
                 SHOPPING
               </span>
             </div>
-            <p className="text-[10px] text-darkbrown-700 font-medium -mt-1 tracking-tight">
+            <p className="hidden sm:block text-[10px] text-darkbrown-700 font-medium -mt-1 tracking-tight">
               Pure Natural Living &bull; B5 Coin Ecosystem
             </p>
           </div>
         </div>
 
         {/* Right Navigation & Badges */}
-        <div className="flex items-center gap-2 sm:gap-3">
+        <div className="flex min-w-0 items-center gap-1 sm:gap-3 shrink-0">
           {/* Partner Shops Directory */}
           <button
             onClick={() => onNavigate('partner-shops')}
@@ -102,14 +102,14 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, onNavigate, onOpenAu
           {/* B5 Coin Wallet Badge */}
           <button
             onClick={() => onNavigate('wallet')}
-            className="flex items-center gap-1.5 bg-gradient-to-r from-b5-50 to-amber-50 border border-b5-200 hover:border-b5-400 px-2.5 py-1.5 rounded-full shadow-sm hover:shadow transition-all group"
+            className="flex items-center gap-1.5 bg-gradient-to-r from-b5-50 to-amber-50 border border-b5-200 hover:border-b5-400 px-2 py-1.5 sm:px-2.5 rounded-full shadow-sm hover:shadow transition-all group"
             title="Click to view B5 Coin Wallet"
           >
             <div className="w-6 h-6 rounded-full bg-gradient-to-br from-b5-500 to-b5-700 text-white flex items-center justify-center shadow-inner group-hover:rotate-12 transition-transform">
               <Coins className="w-3.5 h-3.5" />
             </div>
             <div className="text-left pr-1">
-              <span className="text-[10px] block font-semibold text-b5-800 leading-none">B5 Coins</span>
+              <span className="hidden sm:block text-[10px] font-semibold text-b5-800 leading-none">B5 Coins</span>
               <span className="text-xs font-black text-b5-700 leading-tight">
                 {coinAccount.availableBalance}
               </span>
@@ -144,7 +144,7 @@ export const Header: React.FC<HeaderProps> = ({ currentTab, onNavigate, onOpenAu
             >
               <UserIcon className="w-3.5 h-3.5 text-magizh-700" />
               <span className="hidden sm:inline">{currentUser.name.split(' ')[0]}</span>
-              <span className="sm:hidden">Account</span>
+              <span className="hidden sm:inline">Account</span>
             </button>
           ) : (
             /* Staff / Portal Session Pill for Partner, Sales, and Admin */
