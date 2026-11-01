@@ -20,12 +20,13 @@ export const PartnerHeader: React.FC<PartnerHeaderProps> = ({
       const stored = localStorage.getItem('magizh_partner_user');
       if (stored) return JSON.parse(stored);
     } catch (_) {}
+    const current = StorageService.getCurrentUser();
     return {
-      id: 'MAG-PTR-101',
-      shopName: 'Salem Traditional Organic Store',
-      ownerName: 'Sundaramurthy S',
-      status: 'approved',
-      partnerCode: 'MAG-PTR-101',
+      id: current.id || '',
+      shopName: current.name ? `${current.name}'s Partner Shop` : 'Partner Shop',
+      ownerName: current.name || '',
+      status: 'active',
+      partnerCode: current.customerCode || '',
     };
   });
 

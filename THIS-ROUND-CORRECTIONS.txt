@@ -1,0 +1,31 @@
+MAGIZH SHOPPING — THIS ROUND'S CORRECTIONS
+
+Scope: only the two areas requested in this round:
+1) Mobile screen width / horizontal shifting.
+2) Partner portal bill-entry clarity and role separation.
+
+Changes:
+- Added global box-sizing and viewport-width safeguards to prevent the page/root from extending beyond the mobile screen.
+- Updated the viewport meta tag to use viewport-fit=cover and allow normal pinch zoom.
+- Constrained the main application content to the available width.
+- Removed the sample partner identity fallback from PartnerHeader.
+- Partner and Admin headers now appear only for the matching authenticated role.
+- Admin accounts can no longer enter the Partner Dashboard.
+- Partner Dashboard opens directly on the Bill Requests tab.
+- Renamed the partner billing action to New Bill Entry.
+- Partner bill entry now supports multiple purchased items, quantity, unit price, automatic item totals and automatic bill total.
+- Partner submits the itemized summary and total to the existing customer bill-request endpoint.
+- Partner does not choose or deduct customer coins during bill entry; customer makes the available payment choice in their own Magizh app.
+- Partner payment confirmation now recognizes the customer-selected Cash and UPI statuses, so the Payment Received action appears after the customer selects a method.
+- Billing modal has a mobile-height limit and its own scroll area.
+
+Not changed:
+- B5 Level Tracking project, database, credentials and APIs.
+- Cloudflare D1 / R2 setup.
+- Existing overall visual design system.
+
+Testing status:
+- All 29 TypeScript/TSX source files passed TypeScript transpile syntax checks.
+- Full `npm run build` could not complete in this environment because npm dependencies/type packages in node_modules were incomplete (missing @types packages). This is an environment/dependency issue; a successful production build is NOT claimed.
+- Please run the normal Render build command (`npm install && npm run build`) after upload before deploying live.
+- This package does not claim that multi-device server persistence or live payment settlement has been end-to-end tested.

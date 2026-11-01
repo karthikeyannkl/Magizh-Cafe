@@ -316,7 +316,7 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col bg-cream-100 text-darkbrown-900 selection:bg-magizh-100 selection:text-magizh-900">
       {/* Route-Specific Authenticated Layout Headers */}
-      {isAdminRoute && (
+      {isAdminRoute && currentUser.role === 'admin' && (
         <AdminHeader
           onNavigateStorefront={() => navigateTo('home')}
           onLogout={() => {
@@ -327,7 +327,7 @@ export default function App() {
         />
       )}
 
-      {isPartnerRoute && (
+      {isPartnerRoute && currentUser.role === 'partner' && (
         <PartnerHeader
           onNavigateStorefront={() => navigateTo('home')}
           onLogout={() => {
@@ -348,7 +348,7 @@ export default function App() {
       )}
 
       {/* Main Dynamic View */}
-      <main className="flex-1 w-full">{renderContent()}</main>
+      <main className="flex-1 w-full min-w-0 max-w-full overflow-x-clip">{renderContent()}</main>
 
       {/* Customer Footer (Strictly isolated to Customer view, never on Partner or Admin) */}
       {isCustomerRoute && <CustomerFooter onNavigate={navigateTo} />}

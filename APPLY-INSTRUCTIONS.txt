@@ -1,0 +1,8 @@
+MAGIZH SHOPPING — ONLY CHANGED FILES
+
+This ZIP contains only files that differ from the source archive supplied for this correction round.
+Extract into the root of your existing Magizh-Cafe repository and allow folder paths to merge/overwrite.
+Do NOT replace server/data/magizh.sqlite; your existing database is intentionally excluded.
+Do not upload this ZIP as a replacement for the entire project.
+
+After applying, review the changed files and run the project's normal install/build checks before deployment.

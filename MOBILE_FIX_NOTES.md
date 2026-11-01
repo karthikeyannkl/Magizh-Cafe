@@ -24,3 +24,13 @@ After changing the environment variable, trigger a fresh deployment so Vite embe
 The React `StorageService` currently uses browser LocalStorage for order and coin state. This means separate customer and admin devices do not yet share authoritative order/payment/coin state through the backend database. Do not use this as a production payment-confirmation system until the frontend is connected to authenticated server APIs and the database.
 
 UPI app launch and UTR submission are not proof of payment. Admin must verify the actual bank/UPI credit before confirming an order.
+
+
+## Latest mobile / partner portal correction
+- The mobile viewport now uses width-safe root/main containers, global border-box sizing and horizontal overflow protection.
+- Pinch zoom is no longer disabled.
+- The Partner portal opens on Bill Requests and has a simplified item-wise New Bill Entry (item, quantity, unit price, auto total).
+- Customer chooses payment method in the customer app; partner only confirms payment received after checking it in person.
+- Partner status handling recognizes the Customer Selected Cash / UPI states.
+- Admin and Partner portal headers are shown only to their matching authenticated roles; Admin cannot enter Partner Dashboard.
+- The flattened source copies used by restore-structure.js have been synchronized with the corrected source files.

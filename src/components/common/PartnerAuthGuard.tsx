@@ -36,8 +36,8 @@ export const PartnerAuthGuard: React.FC<PartnerAuthGuardProps> = ({
   onNavigateStorefront,
   children,
 }) => {
-  // If already authenticated as partner or admin, show Partner Dashboard
-  if (currentUser.role === 'partner' || currentUser.role === 'admin') {
+  // Partner portal is strictly for partner accounts; Admin uses /admin only.
+  if (currentUser.role === 'partner') {
     return <>{children}</>;
   }
 

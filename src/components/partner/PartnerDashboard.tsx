@@ -44,7 +44,7 @@ export const PartnerDashboard: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<
     'overview' | 'orders' | 'inventory' | 'settlement' | 'instore'
-  >('overview');
+  >('instore');
   const [statusNotice, setStatusNotice] = useState<string | null>(null);
 
   // Server-backed bills state
@@ -62,9 +62,14 @@ export const PartnerDashboard: React.FC = () => {
   const [posCustomerPhone, setPosCustomerPhone] = useState('');
   const [posCustomer, setPosCustomer] = useState<any | null>(null);
   const [posCustomerCoins, setPosCustomerCoins] = useState<number>(0);
-  const [posBillAmount, setPosBillAmount] = useState<number>(0);
-  const [posCoinsToRedeem, setPosCoinsToRedeem] = useState<number>(0);
-  const [posSummary, setPosSummary] = useState('Native Cold-Pressed Gingelly Oil (1L), Karuppu Kavuni Millet (1kg)');
+  const [posItems, setPosItems] = useState<Array<{ id: number; name: string; quantity: number; price: number }>>([
+    { id: 1, name: '', quantity: 1, price: 0 },
+  ]);
+  const posBillAmount = posItems.reduce((sum, item) => sum + Math.max(0, item.quantity) * Math.max(0, item.price), 0);
+  const posSummary = posItems
+    .filter((item) => item.name.trim() && item.quantity > 0 && item.price > 0)
+    .map((item) => `${item.name.trim()} × ${item.quantity} @ ₹${item.price}`)
+    .join(', ');
   const [posError, setPosError] = useState<string | null>(null);
 
   const loadServerBills = () => {
@@ -184,19 +189,12 @@ export const PartnerDashboard: React.FC = () => {
       return;
     }
 
-    if (posBillAmount <= 0) {
-      setPosError('Bill amount must be greater than zero.');
-      return;
-    }
-
-    const maxCap = Math.floor(posBillAmount * 0.5); // 50% system ceiling
-    if (posCoinsToRedeem > maxCap) {
-      setPosError(`Redemption exceeds the 50% ceiling (Max allowed: ${maxCap} B5 Coins = ₹${maxCap}).`);
-      return;
-    }
-
-    if (posCoinsToRedeem > posCustomerCoins) {
-      setPosError(`Customer has only ${posCustomerCoins} B5 Coins available.`);
+    const validItems = posItems.filter((item) =>
+      item.name.trim() && Number.isFinite(item.quantity) && item.quantity > 0 &&
+      Number.isFinite(item.price) && item.price > 0
+    );
+    if (validItems.length === 0 || posBillAmount <= 0 || validItems.length !== posItems.length) {
+      setPosError('Add a valid item name, quantity and price for every bill row.');
       return;
     }
 
@@ -212,7 +210,7 @@ export const PartnerDashboard: React.FC = () => {
           customerName: posCustomer.name,
           billSummary: posSummary,
           billAmount: posBillAmount,
-          coinsToRedeem: posCoinsToRedeem,
+          coinsToRedeem: 0,
         }),
       });
 
@@ -224,6 +222,9 @@ export const PartnerDashboard: React.FC = () => {
       }
 
       setIsBillingModalOpen(false);
+      setPosItems([{ id: Date.now(), name: '', quantity: 1, price: 0 }]);
+      setPosCustomer(null);
+      setPosCustomerPhone('');
       setStatusNotice(`Bill #${data.bill.billNumber} created! Sent to customer for in-store payment selection.`);
       loadServerBills();
       setActiveTab('instore');
@@ -235,11 +236,7 @@ export const PartnerDashboard: React.FC = () => {
     }
   };
 
-  // Calculate POS real-time figures
-  const maxCapAllowed = Math.floor(posBillAmount * 0.5);
-  const effectiveCoinsRedeemed = Math.min(posCoinsToRedeem, maxCapAllowed, posCustomerCoins);
-  const netCashToPay = Math.max(0, posBillAmount - effectiveCoinsRedeemed);
-  const estimatedPartnerCommission = Math.round((netCashToPay * activePartner.commissionRate) / 100);
+  // Customer chooses coin redemption and Cash / UPI inside their own Magizh app.
 
   return (
     <div className="max-w-6xl mx-auto px-3 sm:px-6 py-4 pb-28 space-y-6">
@@ -278,7 +275,7 @@ export const PartnerDashboard: React.FC = () => {
               className="px-4 py-2 bg-gradient-to-r from-b5-500 to-amber-500 hover:from-b5-600 hover:to-amber-600 text-white font-extrabold text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5"
             >
               <Receipt className="w-4 h-4" />
-              <span>In-Store Coin Billing</span>
+              <span>New Bill Entry</span>
             </button>
 
             <button
@@ -330,7 +327,7 @@ export const PartnerDashboard: React.FC = () => {
           }`}
         >
           <Receipt className="w-3.5 h-3.5" />
-          <span>In-Store Bills &amp; POS ({serverBills.length})</span>
+          <span>Bill Requests ({serverBills.length})</span>
         </button>
         <button
           onClick={() => setActiveTab('orders')}
@@ -455,7 +452,7 @@ export const PartnerDashboard: React.FC = () => {
             <div>
               <h3 className="text-sm sm:text-base font-extrabold text-darkbrown-900 flex items-center gap-2">
                 <Receipt className="w-5 h-5 text-b5-600" />
-                <span>In-Store POS Bills &amp; Customer Coin Redemptions</span>
+                <span>Partner Bills &amp; Customer Requests</span>
               </h3>
               <p className="text-xs text-gray-500">
                 50% Coin Redemption Cap &bull; Customer In-Store Approval &bull; Admin Verification
@@ -466,7 +463,7 @@ export const PartnerDashboard: React.FC = () => {
               className="px-4 py-2 bg-gradient-to-r from-b5-600 to-amber-600 hover:from-b5-700 hover:to-amber-700 text-white rounded-xl text-xs font-black shadow-sm transition-all flex items-center gap-1.5 self-start"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Create In-Store Bill</span>
+              <span>New Bill Entry</span>
             </button>
           </div>
 
@@ -483,7 +480,7 @@ export const PartnerDashboard: React.FC = () => {
                 onClick={() => setIsBillingModalOpen(true)}
                 className="mt-3 px-4 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-bold"
               >
-                Create First In-Store Bill
+                Create First Bill
               </button>
             </div>
           ) : (
@@ -506,10 +503,10 @@ export const PartnerDashboard: React.FC = () => {
                           <span>Waiting for Customer Choice</span>
                         </span>
                       )}
-                      {bill.status === 'PAYMENT_CONFIRMED_BY_CUSTOMER' && (
+                      {['PAYMENT_CONFIRMED_BY_CUSTOMER', 'CUSTOMER_SELECTED_CASH', 'CUSTOMER_SELECTED_UPI'].includes(bill.status) && (
                         <span className="bg-blue-100 text-blue-900 text-[10px] font-black px-2.5 py-0.5 rounded-full border border-blue-300 flex items-center gap-1">
                           <CheckCircle2 className="w-3 h-3 text-blue-600" />
-                          <span>Customer Selected {bill.customerPaymentChoice?.toUpperCase()} &mdash; Collect Payment</span>
+                          <span>Customer Selected {(bill.customerPaymentChoice || bill.status.replace('CUSTOMER_SELECTED_', '')).toUpperCase()} &mdash; Collect Payment</span>
                         </span>
                       )}
                       {bill.status === 'PENDING_ADMIN_APPROVAL' && (
@@ -560,8 +557,8 @@ export const PartnerDashboard: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Step 4: Partner marks payment received once verified */}
-                    {bill.status === 'PAYMENT_CONFIRMED_BY_CUSTOMER' && (
+                    {/* Partner marks payment received after checking cash / UPI credit in person */}
+                    {['PAYMENT_CONFIRMED_BY_CUSTOMER', 'CUSTOMER_SELECTED_CASH', 'CUSTOMER_SELECTED_UPI'].includes(bill.status) && (
                       <button
                         onClick={() => handleConfirmPaymentReceived(bill.id)}
                         disabled={confirmingPaymentId === bill.id}
@@ -736,15 +733,15 @@ export const PartnerDashboard: React.FC = () => {
       {/* 1. IN-STORE POS BILLING & COIN REDEMPTION MODAL */}
       {isBillingModalOpen && (
         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white rounded-3xl max-w-lg w-full p-5 sm:p-6 space-y-4 border border-cream-300 shadow-2xl my-6">
+          <div className="bg-white rounded-3xl max-w-lg w-full max-h-[calc(100dvh-24px)] overflow-y-auto p-4 sm:p-6 space-y-4 border border-cream-300 shadow-2xl my-3">
             <div className="flex justify-between items-center border-b border-cream-200 pb-3">
               <div>
                 <h3 className="text-base font-extrabold text-darkbrown-900 flex items-center gap-1.5">
                   <Receipt className="w-5 h-5 text-b5-600" />
-                  <span>In-Store Coin Billing &amp; POS</span>
+                  <span>New Bill Entry &amp; POS</span>
                 </h3>
                 <p className="text-xs text-gray-500">
-                  Redeem customer B5 Coins (max 50% of bill) and generate an official store receipt
+                  Enter purchased items and send the bill to the customer for approval and payment choice
                 </p>
               </div>
               <button
@@ -821,84 +818,63 @@ export const PartnerDashboard: React.FC = () => {
                 )}
               </div>
 
-              <div>
-                <label className="block text-gray-700 font-bold mb-1">Total Merchandise Bill (₹) *</label>
-                <input
-                  type="number"
-                  min="1"
-                  required
-                  value={posBillAmount}
-                  onChange={(e) => setPosBillAmount(Number(e.target.value))}
-                  className="w-full p-2.5 bg-cream-50/50 border border-cream-300 rounded-xl font-black text-magizh-900 text-base"
-                />
-              </div>
-
-              <div>
-                <label className="block text-gray-700 font-bold mb-1">Purchased Items Summary *</label>
-                <input
-                  type="text"
-                  required
-                  value={posSummary}
-                  onChange={(e) => setPosSummary(e.target.value)}
-                  placeholder="e.g. 1kg Foxtail Millet, 500ml Wood Pressed Sesame Oil"
-                  className="w-full p-2.5 bg-cream-50/50 border border-cream-300 rounded-xl text-xs"
-                />
-              </div>
-
-              {/* B5 Coin Redemption Slider & Max Cap Display */}
-              <div className="p-3 bg-amber-50/80 rounded-2xl border border-amber-200 space-y-2">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="font-extrabold text-amber-950 flex items-center gap-1">
-                    <Coins className="w-4 h-4 text-b5-600" />
-                    <span>B5 Coins to Redeem</span>
-                  </span>
-                  <span className="font-bold text-amber-900 bg-amber-200/80 px-2 py-0.5 rounded-full text-[10px]">
-                    Max Cap: {maxCapAllowed} Coins (50%)
-                  </span>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-2">
+                  <div>
+                    <label className="block text-gray-700 font-extrabold">Purchased Items *</label>
+                    <p className="text-[10px] text-gray-500">ஒவ்வொரு பொருளின் பெயர், எண்ணிக்கை, விலையை உள்ளிடுங்கள்.</p>
+                  </div>
+                  <button type="button"
+                    onClick={() => setPosItems((items) => [...items, { id: Date.now() + items.length, name: '', quantity: 1, price: 0 }])}
+                    className="shrink-0 px-3 py-2 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-[11px] font-bold flex items-center gap-1">
+                    <Plus className="w-3.5 h-3.5" /> Add Item
+                  </button>
                 </div>
-
-                <div className="flex items-center gap-3">
-                  <input
-                    type="range"
-                    min="0"
-                    max={Math.min(maxCapAllowed, posCustomerCoins)}
-                    value={posCoinsToRedeem}
-                    onChange={(e) => setPosCoinsToRedeem(Number(e.target.value))}
-                    className="flex-1 accent-b5-600"
-                  />
-                  <input
-                    type="number"
-                    min="0"
-                    max={Math.min(maxCapAllowed, posCustomerCoins)}
-                    value={posCoinsToRedeem}
-                    onChange={(e) => setPosCoinsToRedeem(Number(e.target.value))}
-                    className="w-20 p-1.5 bg-white border border-amber-300 rounded-lg text-center font-black text-amber-950 text-sm"
-                  />
-                </div>
-                <div className="flex justify-between text-[10px] text-amber-800">
-                  <span>1 B5 Coin = ₹1 Discount</span>
-                  <span>Available Balance: {posCustomerCoins} Coins</span>
+                {posItems.map((item, index) => (
+                  <div key={item.id} className="grid grid-cols-12 gap-2 items-end p-2.5 rounded-xl border border-cream-300 bg-cream-50">
+                    <div className="col-span-12 sm:col-span-5">
+                      <label className="block text-[10px] font-bold text-gray-600 mb-1">Item {index + 1}</label>
+                      <input type="text" value={item.name}
+                        onChange={(e) => setPosItems((items) => items.map((row) => row.id === item.id ? { ...row, name: e.target.value } : row))}
+                        placeholder="Product name" className="w-full min-w-0 p-2.5 bg-white border border-cream-300 rounded-lg text-xs" required />
+                    </div>
+                    <div className="col-span-5 sm:col-span-3">
+                      <label className="block text-[10px] font-bold text-gray-600 mb-1">Qty</label>
+                      <input type="number" min="1" step="1" value={item.quantity}
+                        onChange={(e) => setPosItems((items) => items.map((row) => row.id === item.id ? { ...row, quantity: Math.max(1, Number(e.target.value) || 1) } : row))}
+                        className="w-full min-w-0 p-2.5 bg-white border border-cream-300 rounded-lg text-xs" required />
+                    </div>
+                    <div className="col-span-5 sm:col-span-3">
+                      <label className="block text-[10px] font-bold text-gray-600 mb-1">Unit Price (₹)</label>
+                      <input type="number" min="0.01" step="0.01" value={item.price || ''}
+                        onChange={(e) => setPosItems((items) => items.map((row) => row.id === item.id ? { ...row, price: Math.max(0, Number(e.target.value) || 0) } : row))}
+                        placeholder="0" className="w-full min-w-0 p-2.5 bg-white border border-cream-300 rounded-lg text-xs" required />
+                    </div>
+                    <div className="col-span-2 sm:col-span-1 flex justify-end">
+                      <button type="button" disabled={posItems.length === 1}
+                        onClick={() => setPosItems((items) => items.filter((row) => row.id !== item.id))}
+                        className="w-full sm:w-auto p-2.5 text-rose-600 hover:bg-rose-50 rounded-lg disabled:opacity-30"
+                        aria-label={`Remove item ${index + 1}`}><X className="w-4 h-4" /></button>
+                    </div>
+                    <div className="col-span-12 text-right text-[11px] font-bold text-darkbrown-800">
+                      Item Total: ₹{(item.quantity * item.price).toLocaleString('en-IN')}
+                    </div>
+                  </div>
+                ))}
+                <div className="flex justify-between items-center bg-emerald-50 border border-emerald-200 rounded-xl p-3">
+                  <span className="text-xs font-extrabold text-emerald-950">Bill Total</span>
+                  <span className="text-lg font-black text-emerald-900">₹{posBillAmount.toLocaleString('en-IN')}</span>
                 </div>
               </div>
 
-              {/* Real-time Billing Breakdown */}
               <div className="bg-cream-100/70 p-3 rounded-2xl border border-cream-300 text-xs space-y-1.5">
                 <div className="flex justify-between text-gray-700">
-                  <span>Gross Store Bill:</span>
-                  <span className="font-bold">₹{posBillAmount}</span>
+                  <span>Bill Total:</span>
+                  <span className="font-bold">₹{posBillAmount.toLocaleString('en-IN')}</span>
                 </div>
-                <div className="flex justify-between text-amber-800 font-bold">
-                  <span>B5 Coin Discount ({effectiveCoinsRedeemed} Coins):</span>
-                  <span>-₹{effectiveCoinsRedeemed}</span>
-                </div>
-                <div className="flex justify-between text-magizh-900 font-black text-sm pt-1.5 border-t border-cream-300">
-                  <span>Net Cash / UPI to Collect:</span>
-                  <span>₹{netCashToPay}</span>
-                </div>
-                <div className="flex justify-between text-blue-800 text-[11px] font-bold">
-                  <span>Partner Commission Earned ({activePartner.commissionRate}%):</span>
-                  <span>+₹{estimatedPartnerCommission}</span>
-                </div>
+                <p className="text-[11px] leading-relaxed text-gray-600">
+                  Customer தனது Magizh Shopping App-ல் Bill Request பார்த்து, Coins பயன்படுத்துவது மற்றும் Cash / UPI payment முறையைத் தேர்வு செய்வார்.
+                </p>
               </div>
 
               <div className="flex justify-end gap-2 pt-2 border-t border-cream-200">
