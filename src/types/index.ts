@@ -35,6 +35,24 @@ export interface User {
   addresses: Address[];
   createdAt: string;
   status: 'active' | 'suspended';
+  profilePhoto?: string;
+  emailVerified?: boolean;
+  isGuest?: boolean;
+}
+
+export interface ProductImage {
+  id: string;
+  filename: string;
+  url: string;
+  dataBase64?: string;
+  mimeType?: string;
+  sizeBytes?: number;
+  title?: string;
+  assignedProductId?: string;
+  assignedCategoryId?: string;
+  isPrimary?: boolean;
+  sortOrder?: number;
+  createdAt: string;
 }
 
 export interface PasswordResetRecord {

@@ -1,5 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Header } from './components/common/Header';
+import { CustomerHeader } from './components/common/CustomerHeader';
+import { PartnerHeader } from './components/common/PartnerHeader';
+import { AdminHeader } from './components/common/AdminHeader';
+import { CustomerFooter } from './components/common/CustomerFooter';
 import { BottomNav } from './components/common/BottomNav';
 import { AuthModal } from './components/common/AuthModal';
 import { HomePage } from './components/customer/HomePage';
@@ -297,112 +300,53 @@ export default function App() {
     ? StorageService.getProducts().filter((p) => p.id !== selectedProduct.id && p.category === selectedProduct.category)
     : [];
 
-  const isCustomerView =
-    currentTab !== 'admin' &&
-    currentTab !== 'partner' &&
-    currentTab !== 'partner-orders' &&
-    currentTab !== 'partner-inventory' &&
-    currentTab !== 'admin-orders';
+  const isAdminRoute =
+    currentTab === 'admin' || currentTab === 'admin-orders' || currentTab === 'test-suite';
+  const isPartnerRoute =
+    currentTab === 'partner' ||
+    currentTab === 'partner-orders' ||
+    currentTab === 'partner-inventory';
+  const isCustomerRoute = !isAdminRoute && !isPartnerRoute;
 
   return (
     <div className="min-h-screen flex flex-col bg-cream-100 text-darkbrown-900 selection:bg-magizh-100 selection:text-magizh-900">
-      {/* Top Header */}
-      <Header
-        currentTab={currentTab}
-        onNavigate={(tab) => navigateTo(tab)}
-        onOpenAuth={() => setAuthModalOpen(true)}
-      />
+      {/* Route-Specific Authenticated Layout Headers */}
+      {isAdminRoute && (
+        <AdminHeader
+          onNavigateStorefront={() => navigateTo('home')}
+          onLogout={() => {
+            StorageService.logout();
+            setCurrentUser(StorageService.getCurrentUser());
+            navigateTo('home');
+          }}
+        />
+      )}
+
+      {isPartnerRoute && (
+        <PartnerHeader
+          onNavigateStorefront={() => navigateTo('home')}
+          onLogout={() => {
+            StorageService.logout();
+            setCurrentUser(StorageService.getCurrentUser());
+            navigateTo('home');
+          }}
+        />
+      )}
+
+      {isCustomerRoute && (
+        <CustomerHeader
+          currentTab={currentTab}
+          onNavigate={(tab) => navigateTo(tab)}
+          onOpenAuth={() => setAuthModalOpen(true)}
+          onLogout={() => setCurrentUser(StorageService.getCurrentUser())}
+        />
+      )}
 
       {/* Main Dynamic View */}
       <main className="flex-1 w-full">{renderContent()}</main>
 
-      {/* Customer Footer with Direct Route Links */}
-      {isCustomerView && (
-        <footer className="mt-12 bg-white border-t border-cream-300 py-10 px-4 pb-24 md:pb-10 text-darkbrown-900">
-          <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div className="space-y-2">
-              <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-magizh-800 text-white flex items-center justify-center font-black">
-                  M
-                </div>
-                <span className="font-extrabold text-base tracking-tight text-magizh-900">
-                  MAGIZH SHOPPING
-                </span>
-              </div>
-              <p className="text-xs text-gray-600 leading-relaxed">
-                Modern Indian e-commerce celebrating traditional Tamil Nadu millets, stone-ground podis, wood-pressed virgin oils, and natural soaps with 100% genuine B5 Coin rewards.
-              </p>
-            </div>
-
-            <div>
-              <h4 className="text-xs font-black uppercase tracking-wider text-darkbrown-900 mb-3">
-                Shopping Categories
-              </h4>
-              <ul className="text-xs text-gray-600 space-y-2 font-medium">
-                <li><button onClick={() => navigateTo('home')} className="hover:text-magizh-800">Traditional Millet Products</button></li>
-                <li><button onClick={() => navigateTo('home')} className="hover:text-magizh-800">Stone Ground Podi Varieties</button></li>
-                <li><button onClick={() => navigateTo('home')} className="hover:text-magizh-800">Chettinad Pickles &amp; Thokku</button></li>
-                <li><button onClick={() => navigateTo('home')} className="hover:text-magizh-800">Vedic A2 Ghee &amp; Virgin Oils</button></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="text-xs font-black uppercase tracking-wider text-darkbrown-900 mb-3">
-                Customer Services
-              </h4>
-              <ul className="text-xs text-gray-600 space-y-2 font-medium">
-                <li><button onClick={() => navigateTo('wallet')} className="hover:text-magizh-800">B5 Coin Wallet (1 Coin = ₹1)</button></li>
-                <li><button onClick={() => navigateTo('partner-shops')} className="hover:text-magizh-800">In-Store Partner Shops</button></li>
-                <li><button onClick={() => navigateTo('orders')} className="hover:text-magizh-800">Order History &amp; Tracking</button></li>
-                <li><button onClick={() => navigateTo('account')} className="hover:text-magizh-800">Delivery Address Book</button></li>
-              </ul>
-            </div>
-
-            {/* Portal Access Links */}
-            <div>
-              <h4 className="text-xs font-black uppercase tracking-wider text-darkbrown-900 mb-3">
-                Ecosystem Portals
-              </h4>
-              <ul className="text-xs space-y-2 font-semibold">
-                <li>
-                  <button
-                    onClick={() => navigateTo('partner')}
-                    className="flex items-center gap-1.5 text-blue-800 hover:text-blue-950 hover:underline"
-                  >
-                    <Store className="w-3.5 h-3.5" />
-                    <span>Partner Portal (/partner)</span>
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => navigateTo('referral')}
-                    className="flex items-center gap-1.5 text-purple-800 hover:text-purple-950 hover:underline"
-                  >
-                    <TrendingUp className="w-3.5 h-3.5" />
-                    <span>Sales Leader Portal (/referral)</span>
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={() => navigateTo('admin')}
-                    className="flex items-center gap-1.5 text-red-800 hover:text-red-950 hover:underline"
-                  >
-                    <Shield className="w-3.5 h-3.5" />
-                    <span>Admin Console (/admin)</span>
-                  </button>
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="max-w-7xl mx-auto mt-8 pt-4 border-t border-cream-200 flex flex-col sm:flex-row items-center justify-between text-[11px] text-gray-500 gap-2">
-            <p>&copy; {new Date().getFullYear()} Magizh Shopping &amp; B5 Coin Ecosystem. Pure Natural Living.</p>
-            <p className="flex items-center gap-1">
-              <span>50% B5 Coin Redemption Cap Strictly Enforced</span>
-            </p>
-          </div>
-        </footer>
-      )}
+      {/* Customer Footer (Strictly isolated to Customer view, never on Partner or Admin) */}
+      {isCustomerRoute && <CustomerFooter onNavigate={navigateTo} />}
 
       {/* Product Detail Modal */}
       <ProductDetailModal
@@ -455,14 +399,16 @@ export default function App() {
         }}
       />
 
-      {/* Mobile Bottom Navigation */}
-      <BottomNav
-        currentTab={currentTab}
-        onNavigate={(tab) => navigateTo(tab)}
-        role={currentUser.role}
-        cartCount={cartCount}
-        coinBalance={coinBalance}
-      />
+      {/* Mobile Bottom Navigation (Isolated strictly to Customer Shopping view) */}
+      {isCustomerRoute && (
+        <BottomNav
+          currentTab={currentTab}
+          onNavigate={(tab) => navigateTo(tab)}
+          role={currentUser.role}
+          cartCount={cartCount}
+          coinBalance={coinBalance}
+        />
+      )}
     </div>
   );
 }

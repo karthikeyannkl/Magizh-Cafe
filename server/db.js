@@ -295,6 +295,21 @@ export async function initDatabase() {
       details TEXT NOT NULL,
       ip_address TEXT
     );
+
+    CREATE TABLE IF NOT EXISTS product_images (
+      id TEXT PRIMARY KEY,
+      filename TEXT NOT NULL,
+      url TEXT NOT NULL,
+      data_base64 TEXT,
+      mime_type TEXT NOT NULL,
+      size_bytes INTEGER NOT NULL,
+      title TEXT,
+      assigned_product_id TEXT,
+      assigned_category_id TEXT,
+      is_primary INTEGER DEFAULT 0,
+      sort_order INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL
+    );
   `);
 
   // Run dynamic schema migrations on existing SQLite tables
@@ -341,6 +356,21 @@ function migrateSchema() {
     }
   } catch (err) {
     console.warn('[DB Migration] Partner schema check:', err.message);
+  }
+
+  try {
+    const userInfo = db.exec("PRAGMA table_info(users);");
+    if (userInfo[0]) {
+      const userExisting = new Set(userInfo[0].values.map((v) => v[1]));
+      if (!userExisting.has('profile_photo')) {
+        try { db.run("ALTER TABLE users ADD COLUMN profile_photo TEXT;"); } catch (_) {}
+      }
+      if (!userExisting.has('email_verified')) {
+        try { db.run("ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0;"); } catch (_) {}
+      }
+    }
+  } catch (err) {
+    console.warn('[DB Migration] Users schema check:', err.message);
   }
 
   // Pre-seed merchant UPI IDs and cities for default demo partners
@@ -1817,6 +1847,145 @@ export const dbService = {
       ipAddress: v[cols.indexOf('ip_address')],
     }));
   },
+
+  // Customer Profile Management
+  getCustomerFullProfile(userId) {
+    const user = this.findUserById(userId);
+    if (!user) return null;
+    const coinAcc = this.getCoinAccount(userId);
+    const coinTxns = this.getCoinTransactions(userId);
+    const orders = this.getOrders(userId);
+    const pendingBills = this.getCustomerPendingBills(userId);
+
+    const { passwordHash, ...safeUser } = user;
+    return {
+      user: safeUser,
+      coinAccount: coinAcc,
+      recentTransactions: coinTxns.slice(0, 15),
+      orders: orders.slice(0, 15),
+      pendingBills,
+    };
+  },
+
+  updateCustomerProfile(userId, updates) {
+    const user = this.findUserById(userId);
+    if (!user) throw new Error('Customer account not found.');
+
+    if (updates.email && updates.email.trim().toLowerCase() !== user.email.toLowerCase()) {
+      const existingEmail = this.findUserByEmail(updates.email.trim());
+      if (existingEmail && existingEmail.id !== userId) {
+        throw new Error('This email address is already registered to another account.');
+      }
+    }
+
+    if (updates.mobile && updates.mobile.trim() !== user.mobile) {
+      const existingMobile = this.findUserByMobile(updates.mobile.trim());
+      if (existingMobile && existingMobile.id !== userId) {
+        throw new Error('This mobile number is already registered to another account.');
+      }
+    }
+
+    const newName = updates.name ? updates.name.trim() : user.name;
+    const newEmail = updates.email ? updates.email.trim().toLowerCase() : user.email;
+    const newMobile = updates.mobile ? updates.mobile.trim() : user.mobile;
+    const newPhoto = updates.profilePhoto !== undefined ? updates.profilePhoto : (user.profilePhoto || null);
+
+    db.run(
+      `UPDATE users SET name = ?, email = ?, mobile = ?, profile_photo = ? WHERE id = ?`,
+      [newName, newEmail, newMobile, newPhoto, userId]
+    );
+    this.logAudit('customer', newName, 'UPDATE_PROFILE', `Customer ${userId} updated personal profile details.`);
+    persistDatabase();
+    return this.findUserById(userId);
+  },
+
+  changeUserPassword(userId, oldPassword, newPassword) {
+    const user = this.findUserById(userId);
+    if (!user) throw new Error('User not found.');
+
+    const isOldValid = user.passwordHash && verifyPassword(oldPassword, user.passwordHash);
+    if (!isOldValid) {
+      throw new Error('Current password does not match.');
+    }
+
+    if (!newPassword || newPassword.length < 6) {
+      throw new Error('New password must be at least 6 characters long.');
+    }
+
+    const newHash = hashPassword(newPassword);
+    db.run("UPDATE users SET password_hash = ? WHERE id = ?", [newHash, userId]);
+    this.logAudit('customer', user.name, 'CHANGE_PASSWORD', `User ${userId} updated account password.`);
+    persistDatabase();
+    return true;
+  },
+
+  verifyCustomerEmail(userId) {
+    db.run("UPDATE users SET email_verified = 1 WHERE id = ?", [userId]);
+    persistDatabase();
+    return true;
+  },
+
+  // Product Image Library Management
+  saveProductImage(img) {
+    const id = img.id || `img-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
+    db.run(
+      `INSERT INTO product_images (
+        id, filename, url, data_base64, mime_type, size_bytes, title,
+        assigned_product_id, assigned_category_id, is_primary, sort_order, created_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        id,
+        img.filename,
+        img.url,
+        img.dataBase64 || null,
+        img.mimeType || 'image/jpeg',
+        img.sizeBytes || 0,
+        img.title || img.filename,
+        img.assignedProductId || null,
+        img.assignedCategoryId || null,
+        img.isPrimary ? 1 : 0,
+        img.sortOrder || 0,
+        img.createdAt || new Date().toISOString()
+      ]
+    );
+    persistDatabase();
+    return this.getProductImageById(id);
+  },
+
+  getAllProductImages() {
+    const res = db.exec("SELECT * FROM product_images ORDER BY created_at DESC");
+    if (!res[0]) return [];
+    const cols = res[0].columns;
+    return res[0].values.map((v) => mapProductImageRow(cols, v));
+  },
+
+  getProductImageById(id) {
+    const res = db.exec("SELECT * FROM product_images WHERE id = ?", [id]);
+    if (!res[0] || !res[0].values[0]) return null;
+    return mapProductImageRow(res[0].columns, res[0].values[0]);
+  },
+
+  deleteProductImage(id) {
+    db.run("DELETE FROM product_images WHERE id = ?", [id]);
+    persistDatabase();
+    return true;
+  },
+
+  assignProductImage(id, { productId, categoryId, isPrimary }) {
+    if (isPrimary && productId) {
+      db.run("UPDATE product_images SET is_primary = 0 WHERE assigned_product_id = ?", [productId]);
+    }
+    db.run(
+      `UPDATE product_images SET
+         assigned_product_id = COALESCE(?, assigned_product_id),
+         assigned_category_id = COALESCE(?, assigned_category_id),
+         is_primary = CASE WHEN ? IS NOT NULL THEN ? ELSE is_primary END
+       WHERE id = ?`,
+      [productId || null, categoryId || null, isPrimary !== undefined ? (isPrimary ? 1 : 0) : null, isPrimary ? 1 : 0, id]
+    );
+    persistDatabase();
+    return this.getProductImageById(id);
+  },
 };
 
 // Helper row mappers
@@ -1834,6 +2003,25 @@ function mapUserRow(cols, row) {
     addresses: JSON.parse(row[cols.indexOf('addresses_json')] || '[]'),
     createdAt: row[cols.indexOf('created_at')],
     status: row[cols.indexOf('status')],
+    profilePhoto: cols.indexOf('profile_photo') !== -1 ? row[cols.indexOf('profile_photo')] : null,
+    emailVerified: cols.indexOf('email_verified') !== -1 ? Boolean(row[cols.indexOf('email_verified')]) : false,
+  };
+}
+
+function mapProductImageRow(cols, row) {
+  return {
+    id: row[cols.indexOf('id')],
+    filename: row[cols.indexOf('filename')],
+    url: row[cols.indexOf('url')],
+    dataBase64: cols.indexOf('data_base64') !== -1 ? row[cols.indexOf('data_base64')] : null,
+    mimeType: row[cols.indexOf('mime_type')],
+    sizeBytes: row[cols.indexOf('size_bytes')],
+    title: row[cols.indexOf('title')],
+    assignedProductId: row[cols.indexOf('assigned_product_id')],
+    assignedCategoryId: row[cols.indexOf('assigned_category_id')],
+    isPrimary: row[cols.indexOf('is_primary')] === 1,
+    sortOrder: row[cols.indexOf('sort_order')],
+    createdAt: row[cols.indexOf('created_at')],
   };
 }
 

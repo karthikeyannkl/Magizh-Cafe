@@ -14,8 +14,19 @@ import {
 } from './security.js';
 import { sendPasswordResetEmail } from './emailService.js';
 import { lookupPinCode } from './pincodeData.js';
+import { b5CloudClient } from './b5CloudApi.js';
+import { backupService } from './backupService.js';
 
 export const apiRouter = express.Router();
+
+// Health check endpoint
+apiRouter.get('/health', (req, res) => {
+  res.json({
+    status: 'healthy',
+    database: 'sqlite',
+    timestamp: new Date().toISOString(),
+  });
+});
 
 // Helper: Basic Email Regex Validation
 function isValidEmail(email) {
@@ -409,6 +420,166 @@ apiRouter.post('/auth/reset-password', (req, res) => {
 });
 
 // -------------------------------------------------------------
+// Customer Profile & Account Management
+// -------------------------------------------------------------
+
+apiRouter.get('/customer/profile/:id', (req, res) => {
+  try {
+    const customerId = req.params.id;
+    if (!customerId) return res.status(400).json({ error: 'Customer ID is required.' });
+
+    const profileData = dbService.getCustomerFullProfile(customerId);
+    if (!profileData) {
+      return res.status(404).json({ error: 'Customer profile not found.' });
+    }
+
+    res.json({
+      success: true,
+      ...profileData,
+      profile: profileData,
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to retrieve customer profile.' });
+  }
+});
+
+apiRouter.put('/customer/profile/:id', (req, res) => {
+  try {
+    const customerId = req.params.id;
+    const { name, email, mobile, profilePhoto } = req.body;
+
+    if (name && name.trim().length < 2) {
+      return res.status(400).json({ error: 'Please enter a valid full name.' });
+    }
+    if (email && !isValidEmail(email)) {
+      return res.status(400).json({ error: 'Please enter a valid email address.' });
+    }
+    if (mobile && !/^\d{10}$/.test(String(mobile).trim())) {
+      return res.status(400).json({ error: 'Please enter a valid 10-digit mobile number.' });
+    }
+
+    const updated = dbService.updateCustomerProfile(customerId, {
+      name,
+      email,
+      mobile,
+      profilePhoto,
+    });
+
+    const { passwordHash, ...safeUser } = updated;
+    res.json({
+      success: true,
+      user: safeUser,
+      message: 'Profile updated successfully.',
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message || 'Failed to update customer profile.' });
+  }
+});
+
+apiRouter.post('/customer/change-password', (req, res) => {
+  try {
+    const { customerId, oldPassword, newPassword, confirmPassword } = req.body;
+    if (!customerId || !oldPassword || !newPassword) {
+      return res.status(400).json({ error: 'Customer ID, old password, and new password are required.' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ error: 'New password must be at least 6 characters long.' });
+    }
+    if (confirmPassword && newPassword !== confirmPassword) {
+      return res.status(400).json({ error: 'New password and Confirm Password do not match.' });
+    }
+
+    dbService.changeUserPassword(customerId, oldPassword, newPassword);
+    res.json({
+      success: true,
+      message: 'Password changed successfully.',
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message || 'Failed to change password.' });
+  }
+});
+
+apiRouter.post('/customer/send-email-verification', async (req, res) => {
+  try {
+    const { customerId, email } = req.body;
+    if (!customerId || !isValidEmail(email)) {
+      return res.status(400).json({ error: 'Valid customer ID and email address are required.' });
+    }
+
+    const otpCode = generateOtp();
+    const result = await sendPasswordResetEmail(email.trim().toLowerCase(), otpCode, 15);
+
+    // Save for verification
+    const otpHash = hashOtp(otpCode);
+    dbService.savePasswordResetOtp(email.trim().toLowerCase(), otpHash, Date.now() + 15 * 60 * 1000, Date.now() + 60 * 1000);
+
+    res.json({
+      success: true,
+      delivered: result.delivered,
+      demoMode: result.demoMode,
+      demoOtp: result.demoOtp,
+      message: result.message,
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to dispatch verification email.' });
+  }
+});
+
+apiRouter.post('/customer/confirm-email-verification', (req, res) => {
+  try {
+    const { customerId, email, otp } = req.body;
+    if (!customerId || !email || !otp) {
+      return res.status(400).json({ error: 'Customer ID, email, and OTP code are required.' });
+    }
+
+    const record = dbService.getPasswordResetRecord(email.trim().toLowerCase());
+    if (!record || Date.now() > record.expiresAt) {
+      return res.status(400).json({ error: 'Verification code has expired or was not found.' });
+    }
+
+    if (!verifyOtp(String(otp).trim(), record.otpHash)) {
+      return res.status(400).json({ error: 'Incorrect verification code.' });
+    }
+
+    dbService.verifyCustomerEmail(customerId);
+    dbService.clearPasswordReset(email.trim().toLowerCase());
+
+    res.json({
+      success: true,
+      message: 'Email address verified successfully.',
+    });
+  } catch (err) {
+    res.status(500).json({ error: 'Email verification confirmation failed.' });
+  }
+});
+
+apiRouter.post('/auth/logout', (req, res) => {
+  const { role, identifier } = req.body || {};
+  dbService.logAudit(role || 'user', identifier || 'Anonymous', 'LOGOUT', 'User logged out and session cleared');
+  res.json({ success: true, message: 'Logged out successfully.' });
+});
+
+// -------------------------------------------------------------
+// B5 Cloud API Gateway Endpoints
+// -------------------------------------------------------------
+
+apiRouter.get('/b5-cloud/status', (req, res) => {
+  const status = b5CloudClient.getStatus();
+  res.json({ success: true, ...status });
+});
+
+apiRouter.get('/b5-cloud/customer/:identifier', async (req, res) => {
+  try {
+    const identifier = req.params.identifier;
+    const balance = await b5CloudClient.lookupCustomerBalance(identifier, (id) => dbService.getCoinAccount(id));
+    if (!balance) return res.status(404).json({ error: 'Customer not found in B5 ledger.' });
+    res.json({ success: true, balance });
+  } catch (err) {
+    res.status(500).json({ error: 'B5 Cloud customer lookup failed.' });
+  }
+});
+
+// -------------------------------------------------------------
 // B. Product Management Endpoints
 // -------------------------------------------------------------
 
@@ -518,6 +689,223 @@ apiRouter.post('/banners', requireAdminAuth, (req, res) => {
   b.id = b.id || `ban-${Date.now()}`;
   dbService.saveBanner(b);
   res.status(201).json({ success: true, banner: b });
+});
+
+// -------------------------------------------------------------
+// Orders & Stock Management (Backend Database API)
+// -------------------------------------------------------------
+
+apiRouter.get('/orders', (req, res) => {
+  try {
+    const { customerId } = req.query;
+    let orders = dbService.getOrders();
+    if (customerId) {
+      orders = orders.filter((o) => o.customerId === customerId);
+    }
+    res.json({ success: true, count: orders.length, orders });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to retrieve orders.' });
+  }
+});
+
+apiRouter.get('/orders/:id', (req, res) => {
+  try {
+    const order = dbService.getOrderById(req.params.id);
+    if (!order) return res.status(404).json({ error: 'Order not found.' });
+    res.json({ success: true, order });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to retrieve order.' });
+  }
+});
+
+apiRouter.post('/orders', (req, res) => {
+  try {
+    const orderData = req.body;
+    if (!orderData || !orderData.items || orderData.items.length === 0) {
+      return res.status(400).json({ error: 'Order must contain at least one item.' });
+    }
+
+    // Decrement stock for purchased product variants in the database
+    if (Array.isArray(orderData.items)) {
+      for (const item of orderData.items) {
+        const product = dbService.getProductById(item.productId);
+        if (product && Array.isArray(product.variants)) {
+          let stockUpdated = false;
+          const updatedVariants = product.variants.map((v) => {
+            if (v.id === item.variantId || v.weight === item.variantWeight) {
+              const currentStock = typeof v.stock === 'number' ? v.stock : 50;
+              const newStock = Math.max(0, currentStock - (item.quantity || 1));
+              stockUpdated = true;
+              return { ...v, stock: newStock };
+            }
+            return v;
+          });
+          if (stockUpdated) {
+            dbService.saveProduct({ ...product, variants: updatedVariants });
+          }
+        }
+      }
+    }
+
+    // Handle coin redemption deduction if coins were redeemed
+    if (orderData.coinsRedeemed > 0 && orderData.customerId) {
+      const coinAccount = dbService.getCoinAccount(orderData.customerId);
+      if (coinAccount) {
+        const newBalance = Math.max(0, coinAccount.availableBalance - orderData.coinsRedeemed);
+        dbService.saveCoinAccount({
+          ...coinAccount,
+          availableBalance: newBalance,
+          totalRedeemed: coinAccount.totalRedeemed + orderData.coinsRedeemed,
+        });
+        dbService.recordCoinTransaction({
+          id: `TXN-RED-${Date.now()}`,
+          customerId: orderData.customerId,
+          orderId: orderData.id,
+          orderNumber: orderData.orderNumber,
+          type: 'redemption',
+          amount: orderData.coinsRedeemed,
+          reason: `Redeemed on Order #${orderData.orderNumber}`,
+          balanceAfter: newBalance,
+          status: 'completed',
+          timestamp: new Date().toISOString(),
+        });
+      }
+    }
+
+    // Handle reward coins earned credit if eligible
+    if (orderData.rewardCoinsEarned > 0 && orderData.customerId) {
+      const coinAccount = dbService.getCoinAccount(orderData.customerId);
+      if (coinAccount) {
+        const newBalance = coinAccount.availableBalance + orderData.rewardCoinsEarned;
+        dbService.saveCoinAccount({
+          ...coinAccount,
+          availableBalance: newBalance,
+          totalEarned: coinAccount.totalEarned + orderData.rewardCoinsEarned,
+        });
+        dbService.recordCoinTransaction({
+          id: `TXN-REW-${Date.now()}`,
+          customerId: orderData.customerId,
+          orderId: orderData.id,
+          orderNumber: orderData.orderNumber,
+          type: 'reward_credit',
+          amount: orderData.rewardCoinsEarned,
+          reason: `5% Reward Coins earned on Order #${orderData.orderNumber}`,
+          balanceAfter: newBalance,
+          status: 'completed',
+          timestamp: new Date().toISOString(),
+        });
+      }
+    }
+
+    const createdOrder = dbService.createOrder(orderData);
+    res.status(201).json({ success: true, order: createdOrder });
+  } catch (err) {
+    console.error('[API Create Order Error]', err);
+    res.status(500).json({ error: 'Failed to create order.' });
+  }
+});
+
+apiRouter.post('/orders/:id/status', (req, res) => {
+  try {
+    const { status, note } = req.body;
+    if (!status) return res.status(400).json({ error: 'Status is required.' });
+
+    const updated = dbService.updateOrderStatus(req.params.id, status, note || '');
+    if (!updated) return res.status(404).json({ error: 'Order not found.' });
+
+    // If cancelled, reverse redeemed coins back to customer balance
+    if (status === 'Cancelled' && updated.coinsRedeemed > 0 && updated.customerId) {
+      const coinAccount = dbService.getCoinAccount(updated.customerId);
+      if (coinAccount) {
+        const newBalance = coinAccount.availableBalance + updated.coinsRedeemed;
+        dbService.saveCoinAccount({
+          ...coinAccount,
+          availableBalance: newBalance,
+          totalRedeemed: Math.max(0, coinAccount.totalRedeemed - updated.coinsRedeemed),
+          reversedBalance: (coinAccount.reversedBalance || 0) + updated.coinsRedeemed,
+        });
+        dbService.recordCoinTransaction({
+          id: `TXN-REV-${Date.now()}`,
+          customerId: updated.customerId,
+          orderId: updated.id,
+          orderNumber: updated.orderNumber,
+          type: 'reversal',
+          amount: updated.coinsRedeemed,
+          reason: `Reversal of redeemed coins for Cancelled Order #${updated.orderNumber}`,
+          balanceAfter: newBalance,
+          status: 'completed',
+          timestamp: new Date().toISOString(),
+        });
+      }
+    }
+
+    res.json({ success: true, order: updated });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to update order status.' });
+  }
+});
+
+// Coupons
+apiRouter.get('/coupons', (req, res) => {
+  try {
+    const coupons = [
+      {
+        code: 'WELCOME100',
+        discountType: 'fixed',
+        discountValue: 100,
+        minOrderValue: 500,
+        description: 'Flat ₹100 Off on your traditional feast order above ₹500',
+        validUntil: '2026-12-31',
+        active: true,
+      },
+      {
+        code: 'PONGAL10',
+        discountType: 'percentage',
+        discountValue: 10,
+        minOrderValue: 800,
+        maxDiscount: 200,
+        description: '10% Festive Discount on all Millet Products and Ghee',
+        validUntil: '2026-12-31',
+        active: true,
+      },
+      {
+        code: 'HEALTHY50',
+        discountType: 'fixed',
+        discountValue: 50,
+        minOrderValue: 300,
+        description: '₹50 Off on healthy soaps and podi varieties',
+        validUntil: '2026-12-31',
+        active: true,
+      },
+    ];
+    res.json({ success: true, coupons });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to load coupons.' });
+  }
+});
+
+// Cloudflare D1 Status
+apiRouter.get('/d1/status', async (req, res) => {
+  try {
+    const { d1 } = await import('./d1Client.js');
+    const isConfigured = d1.isConfigured();
+    let health = null;
+    if (isConfigured) {
+      const ping = await d1.query('SELECT 1 as live_test, datetime("now") as server_time');
+      health = ping.results?.[0] || null;
+    }
+    res.json({
+      success: true,
+      database: 'magizh-shopping-db',
+      databaseId: d1.databaseId,
+      region: 'APAC',
+      configured: isConfigured,
+      connected: Boolean(health && health.live_test === 1),
+      serverTime: health?.server_time || null,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // -------------------------------------------------------------
@@ -727,7 +1115,7 @@ apiRouter.post('/admin/partner-applications/:id/decision', requireAdminAuth, (re
       message: `Partner application for "${updated.shopName}" was ${updated.status} successfully.`,
     });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ success: false, error: err.message });
   }
 });
 
@@ -806,7 +1194,7 @@ apiRouter.post('/partners/bills/create', (req, res) => {
       message: 'Bill created successfully. Sent to customer for in-store payment selection.',
     });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ success: false, error: err.message });
   }
 });
 
@@ -839,7 +1227,7 @@ apiRouter.post('/customer/bills/:id/select-payment', (req, res) => {
       message: `Selected payment via ${paymentMethod.toUpperCase()}. Please complete payment with the partner.`,
     });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ success: false, error: err.message });
   }
 });
 
@@ -863,7 +1251,7 @@ apiRouter.post('/partners/bills/:id/confirm-payment-received', (req, res) => {
       message: 'Payment received confirmed. Bill submitted to Admin for final receipt verification.',
     });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ success: false, error: err.message });
   }
 });
 
@@ -916,7 +1304,7 @@ apiRouter.post('/admin/bills/:id/decision', requireAdminAuth, (req, res) => {
           : `Bill #${updated.billNumber} was rejected. No coins were deducted.`,
     });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ success: false, error: err.message });
   }
 });
 
@@ -938,7 +1326,8 @@ apiRouter.post('/customer/notifications/:id/mark-viewed', (req, res) => {
 
 apiRouter.post('/admin/credit-coins', requireAdminAuth, (req, res) => {
   try {
-    const { customerId, coins, reason } = req.body;
+    const { customerId, reason } = req.body;
+    const coins = req.body.coins || req.body.amount;
     if (!customerId || !coins) {
       return res.status(400).json({ error: 'Customer ID and coins amount are required.' });
     }
@@ -957,11 +1346,123 @@ apiRouter.post('/admin/credit-coins', requireAdminAuth, (req, res) => {
       message: `Successfully credited ${coins} B5 Coins. Persistent celebration notification created for customer.`,
     });
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(400).json({ success: false, error: err.message });
   }
 });
 
 // Audit Logs (Restricted to Administrators)
 apiRouter.get('/audit-logs', requireAdminAuth, (req, res) => {
   res.json({ success: true, logs: dbService.getAuditLogs() });
+});
+
+// -------------------------------------------------------------
+// Admin Product Image Library
+// -------------------------------------------------------------
+
+apiRouter.get('/admin/images', requireAdminAuth, (req, res) => {
+  try {
+    const images = dbService.getAllProductImages();
+    res.json({ success: true, count: images.length, images });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to retrieve image library.' });
+  }
+});
+
+apiRouter.post('/admin/images/upload', requireAdminAuth, (req, res) => {
+  try {
+    const { filename, url, dataBase64, mimeType, sizeBytes, title, assignedProductId, assignedCategoryId, isPrimary } = req.body;
+    if (!filename || (!url && !dataBase64)) {
+      return res.status(400).json({ error: 'Image filename and image data (URL or base64) are required.' });
+    }
+
+    const saved = dbService.saveProductImage({
+      filename,
+      url: url || dataBase64,
+      dataBase64,
+      mimeType: mimeType || 'image/jpeg',
+      sizeBytes: sizeBytes || (dataBase64 ? Math.round(dataBase64.length * 0.75) : 0),
+      title: title || filename,
+      assignedProductId,
+      assignedCategoryId,
+      isPrimary,
+    });
+
+    res.status(201).json({
+      success: true,
+      image: saved,
+      message: 'Product image successfully saved to persistent library.',
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message || 'Failed to save product image.' });
+  }
+});
+
+apiRouter.delete('/admin/images/:id', requireAdminAuth, (req, res) => {
+  try {
+    dbService.deleteProductImage(req.params.id);
+    res.json({ success: true, message: 'Image removed from library.' });
+  } catch (err) {
+    res.status(500).json({ error: 'Failed to delete image.' });
+  }
+});
+
+apiRouter.post('/admin/images/:id/assign', requireAdminAuth, (req, res) => {
+  try {
+    const { productId, categoryId, isPrimary } = req.body;
+    const updated = dbService.assignProductImage(req.params.id, { productId, categoryId, isPrimary });
+    res.json({ success: true, image: updated, message: 'Image assignment updated.' });
+  } catch (err) {
+    res.status(400).json({ error: err.message || 'Failed to update image assignment.' });
+  }
+});
+
+// -------------------------------------------------------------
+// Cloud Database Backup & Staging Test Restore (Admin Only)
+// -------------------------------------------------------------
+
+apiRouter.get('/admin/backups/status', requireAdminAuth, (req, res) => {
+  try {
+    const status = backupService.getBackupStatus();
+    res.json({ success: true, status });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Failed to retrieve backup status.' });
+  }
+});
+
+apiRouter.get('/admin/backups', requireAdminAuth, (req, res) => {
+  try {
+    const backups = backupService.listBackups();
+    res.json({ success: true, count: backups.length, backups });
+  } catch (err) {
+    res.status(500).json({ success: false, error: 'Failed to list database backups.' });
+  }
+});
+
+apiRouter.post('/admin/backups/create', requireAdminAuth, async (req, res) => {
+  try {
+    const adminName = req.adminUser?.name || 'Administrator';
+    const result = await backupService.createBackup('MANUAL_ADMIN', adminName);
+    res.status(201).json({
+      success: true,
+      backup: result.manifest,
+      retainedCount: result.retainedCount,
+      message: `Database backup ${result.manifest.filename} created successfully.`,
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message || 'Backup creation failed.' });
+  }
+});
+
+apiRouter.post('/admin/backups/test-restore', requireAdminAuth, async (req, res) => {
+  try {
+    const { filename } = req.body;
+    const result = await backupService.performTestRestore(filename);
+    res.json({
+      success: result.success,
+      report: result,
+      message: result.message || 'Test restore completed.',
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message || 'Test restore failed.' });
+  }
 });

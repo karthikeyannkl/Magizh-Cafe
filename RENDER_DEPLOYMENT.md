@@ -46,18 +46,22 @@ git push -u origin main
      *(or `node server/server.js`)*
 
 ### Step 3: Configure Environment Variables
-Under the **Environment** tab on Render, add the following key-value pairs:
+Under the **Environment** tab on Render / AIC Cloud, add the following key-value pairs:
 
 | Key | Recommended Value | Notes |
 |---|---|---|
 | `NODE_ENV` | `production` | Enables production optimizations |
+| `PORT` | `3001` (or system `$PORT`) | Port for Node Express server |
 | `CORS_ORIGIN` | `*` | Or your production domain |
+| `B5_CLOUD_API_URL` | `https://aic-b5-cloud.appliedintelligencecorporation.com` | AIC / B5 Cloud API gateway (keeps DB separate) |
+| `B5_CLOUD_API_KEY` | `your_secure_b5_cloud_api_token` | Server-to-server bearer API key |
+| `ADMIN_SECRET` | `your_custom_admin_clearance_secret` | Internal admin authorization secret |
 | `SMTP_HOST` | `smtp.gmail.com` | Or SendGrid/Mailgun/SES host |
 | `SMTP_PORT` | `587` | Standard TLS SMTP port |
 | `SMTP_USER` | `support@magizh.in` | Sender mailbox username |
 | `SMTP_PASS` | `your_smtp_app_password` | App-specific password |
 | `EMAIL_FROM` | `Magizh Shopping <support@magizh.in>` | From header for OTP emails |
-| `DATABASE_URL` | *(Optional)* | Only if using Render PostgreSQL |
+| `DATABASE_URL` | *(Optional)* | Only if using External PostgreSQL |
 
 > [!NOTE]
 > If SMTP credentials are left blank, the platform automatically activates the clearly labeled **[DEMO MODE] Time-Limited Password Reset OTP** banner on screen for safe developer testing without crashing.

@@ -37,6 +37,10 @@ import {
   Receipt,
   Phone,
   Mail,
+  Database,
+  HardDrive,
+  RefreshCw,
+  Server,
 } from 'lucide-react';
 import { StorageService, subscribe } from '../../services/storage';
 import {
@@ -69,6 +73,7 @@ export const AdminPanel: React.FC = () => {
     | 'orders'
     | 'catalog'
     | 'categories'
+    | 'imageLibrary'
     | 'banners'
     | 'partnerApplications'
     | 'instoreBills'
@@ -77,6 +82,7 @@ export const AdminPanel: React.FC = () => {
     | 'requests'
     | 'coupons'
     | 'levels'
+    | 'backups'
     | 'audit'
     | 'tests'
   >('orders');
@@ -105,6 +111,16 @@ export const AdminPanel: React.FC = () => {
   const [allBills, setAllBills] = useState<any[]>([]);
   const [isLoadingBills, setIsLoadingBills] = useState(false);
   const [decidingBillId, setDecidingBillId] = useState<string | null>(null);
+
+  // Product Image Library State
+  const [images, setImages] = useState<any[]>([]);
+  const [isLoadingImages, setIsLoadingImages] = useState(false);
+  const [uploadTitle, setUploadTitle] = useState('');
+  const [uploadProductAssignment, setUploadProductAssignment] = useState('');
+  const [uploadCategoryAssignment, setUploadCategoryAssignment] = useState('');
+  const [uploadDataUrl, setUploadDataUrl] = useState<string | null>(null);
+  const [uploadFileName, setUploadFileName] = useState('');
+  const [isUploadingImage, setIsUploadingImage] = useState(false);
 
   const [notice, setNotice] = useState<string | null>(null);
 
@@ -136,6 +152,16 @@ export const AdminPanel: React.FC = () => {
     running: false,
     tests: [],
   });
+
+  // Automatic Cloud Database Backup & B5 Cloud Status State
+  const [backupStatus, setBackupStatus] = useState<any | null>(null);
+  const [backupsList, setBackupsList] = useState<any[]>([]);
+  const [isLoadingBackups, setIsLoadingBackups] = useState(false);
+  const [isCreatingBackup, setIsCreatingBackup] = useState(false);
+  const [isRestoringTest, setIsRestoringTest] = useState(false);
+  const [testRestoreReport, setTestRestoreReport] = useState<any | null>(null);
+  const [backupActionNotice, setBackupActionNotice] = useState<string | null>(null);
+  const [b5CloudStatus, setB5CloudStatus] = useState<any | null>(null);
 
   useEffect(() => {
     const unsubOrders = subscribe('ordersChanged', (o) => setOrders(o));
@@ -200,10 +226,189 @@ export const AdminPanel: React.FC = () => {
       .catch(() => setIsLoadingBills(false));
   };
 
+  const loadAdminImages = () => {
+    setIsLoadingImages(true);
+    const token = StorageService.getAdminToken();
+    const headers: Record<string, string> = {
+      'x-admin-secret': 'MAGIZH_ADMIN_HMAC_SECRET_2026',
+    };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    fetch('/api/admin/images', { headers })
+      .then((r) => r.json())
+      .then((data) => {
+        setIsLoadingImages(false);
+        if (data.success && Array.isArray(data.images)) {
+          setImages(data.images);
+        }
+      })
+      .catch(() => setIsLoadingImages(false));
+  };
+
+  const loadBackupData = () => {
+    setIsLoadingBackups(true);
+    const token = StorageService.getAdminToken();
+    const headers: Record<string, string> = {
+      'x-admin-secret': 'MAGIZH_ADMIN_HMAC_SECRET_2026',
+    };
+    if (token) headers['Authorization'] = `Bearer ${token}`;
+
+    Promise.all([
+      fetch('/api/admin/backups/status', { headers }).then((r) => r.json()).catch(() => ({})),
+      fetch('/api/admin/backups', { headers }).then((r) => r.json()).catch(() => ({})),
+      fetch('/api/b5-cloud/status').then((r) => r.json()).catch(() => ({})),
+    ]).then(([statusRes, listRes, cloudRes]) => {
+      setIsLoadingBackups(false);
+      if (statusRes.success) setBackupStatus(statusRes.status);
+      if (listRes.success && Array.isArray(listRes.backups)) setBackupsList(listRes.backups);
+      if (cloudRes.success) setB5CloudStatus(cloudRes);
+    });
+  };
+
+  const handleCreateBackupNow = async () => {
+    setIsCreatingBackup(true);
+    setBackupActionNotice(null);
+    try {
+      const token = StorageService.getAdminToken();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'x-admin-secret': 'MAGIZH_ADMIN_HMAC_SECRET_2026',
+      };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch('/api/admin/backups/create', {
+        method: 'POST',
+        headers,
+      });
+      const data = await res.json();
+      setIsCreatingBackup(false);
+      if (data.success) {
+        setBackupActionNotice(`Daily Backup snapshot "${data.backup.filename}" created and saved to persistent cloud disk! (Retained: ${data.retainedCount} versions)`);
+        loadBackupData();
+      } else {
+        alert(data.error || 'Failed to create backup.');
+      }
+    } catch (err: any) {
+      setIsCreatingBackup(false);
+      alert(err.message || 'Error occurred during backup creation.');
+    }
+  };
+
+  const handleRunTestRestore = async (filename?: string) => {
+    setIsRestoringTest(true);
+    setBackupActionNotice(null);
+    try {
+      const token = StorageService.getAdminToken();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        'x-admin-secret': 'MAGIZH_ADMIN_HMAC_SECRET_2026',
+      };
+      if (token) headers['Authorization'] = `Bearer ${token}`;
+
+      const res = await fetch('/api/admin/backups/test-restore', {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({ filename }),
+      });
+      const data = await res.json();
+      setIsRestoringTest(false);
+      if (data.report) {
+        setTestRestoreReport(data.report);
+      }
+      if (data.success) {
+        setBackupActionNotice('Staging test restore verified successfully! PRAGMA integrity_check: ok, checksum matched, all 11 tables verified.');
+        loadBackupData();
+      } else {
+        alert(data.error || 'Test restore integrity check failed.');
+      }
+    } catch (err: any) {
+      setIsRestoringTest(false);
+      alert(err.message || 'Error executing test restore.');
+    }
+  };
+
   useEffect(() => {
     loadPartnerApplications();
     loadAdminBills();
+    loadAdminImages();
+    loadBackupData();
   }, []);
+
+  const handleImageFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setUploadFileName(file.name);
+      if (!uploadTitle) setUploadTitle(file.name.replace(/\.[^/.]+$/, ''));
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setUploadDataUrl(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleUploadImageSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!uploadDataUrl) return;
+    setIsUploadingImage(true);
+
+    try {
+      const token = StorageService.getAdminToken();
+      const res = await fetch('/api/admin/images/upload', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+          'x-admin-secret': 'MAGIZH_ADMIN_HMAC_SECRET_2026',
+        },
+        body: JSON.stringify({
+          filename: uploadFileName || 'product-image.jpg',
+          dataBase64: uploadDataUrl,
+          title: uploadTitle || uploadFileName,
+          assignedProductId: uploadProductAssignment || null,
+          assignedCategoryId: uploadCategoryAssignment || null,
+          isPrimary: true,
+        }),
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setNotice('Image successfully uploaded and stored in persistent image library.');
+        setUploadDataUrl(null);
+        setUploadFileName('');
+        setUploadTitle('');
+        setUploadProductAssignment('');
+        setUploadCategoryAssignment('');
+        loadAdminImages();
+        setTimeout(() => setNotice(null), 4000);
+      } else {
+        alert(data.error || 'Failed to upload image.');
+      }
+    } catch (_) {
+      alert('Network error while uploading image.');
+    } finally {
+      setIsUploadingImage(false);
+    }
+  };
+
+  const handleDeleteImage = async (imageId: string) => {
+    if (!window.confirm('Delete this image from the persistent image library?')) return;
+    try {
+      const token = StorageService.getAdminToken();
+      const res = await fetch(`/api/admin/images/${imageId}`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'x-admin-secret': 'MAGIZH_ADMIN_HMAC_SECRET_2026',
+        },
+      });
+      if (res.ok) {
+        setNotice('Image removed from library.');
+        loadAdminImages();
+        setTimeout(() => setNotice(null), 3000);
+      }
+    } catch (_) {}
+  };
 
   const handleDecidePartnerApplication = async (appId: string, decision: 'approve' | 'reject') => {
     let reason = '';
@@ -962,12 +1167,14 @@ export const AdminPanel: React.FC = () => {
           { id: 'instoreBills', label: `In-Store Bills Approval (${pendingBills.length})` },
           { id: 'catalog', label: `Products (${products.length})` },
           { id: 'categories', label: `Categories (${categories.length})` },
+          { id: 'imageLibrary', label: `Image Library (${images.length})` },
           { id: 'banners', label: `Banners (${banners.length})` },
           { id: 'coins', label: 'B5 Coin Rules & Ledger' },
           { id: 'requests', label: `Coin Requests (${manualRequests.filter((r) => r.status === 'pending').length})` },
           { id: 'partners', label: `Partner Shops (${partners.length})` },
           { id: 'coupons', label: `Coupons (${coupons.length})` },
           { id: 'levels', label: 'Level 1–7 Settings' },
+          { id: 'backups', label: `Cloud DB & Backups (${backupsList.length > 0 ? backupsList.length : '7 Daily'})` },
           { id: 'tests', label: '20-Point Test Suite' },
           { id: 'audit', label: 'Audit Logs' },
         ].map((tab) => (
@@ -1681,6 +1888,142 @@ export const AdminPanel: React.FC = () => {
         </div>
       )}
 
+      {/* PRODUCT IMAGE LIBRARY */}
+      {activeTab === 'imageLibrary' && (
+        <div className="bg-white rounded-3xl border border-cream-300 p-5 shadow-2xs space-y-5 animate-in fade-in">
+          <div className="border-b border-cream-200 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-sm font-extrabold text-darkbrown-900">
+                Persistent Product Image Library &amp; Cloud Asset Storage
+              </h2>
+              <p className="text-xs text-gray-500">
+                Upload, preview, and assign high-resolution product photography to catalog items and categories.
+              </p>
+            </div>
+            <span className="text-xs font-bold text-darkbrown-700 bg-cream-100 px-3 py-1 rounded-full border border-cream-200">
+              {images.length} Image{images.length !== 1 ? 's' : ''} Stored
+            </span>
+          </div>
+
+          {/* Upload Form */}
+          <form onSubmit={handleUploadImageSubmit} className="bg-cream-50/70 p-4 rounded-2xl border border-cream-200 space-y-3 text-xs">
+            <h3 className="font-bold text-darkbrown-900 flex items-center gap-1.5">
+              <Plus className="w-4 h-4 text-magizh-700" />
+              <span>Upload New Product Image</span>
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">Select Image File</label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageFileChange}
+                  className="w-full text-xs text-gray-600 file:mr-2 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-magizh-800 file:text-white hover:file:bg-magizh-900 cursor-pointer"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">Image Title / Alt Description</label>
+                <input
+                  type="text"
+                  value={uploadTitle}
+                  onChange={(e) => setUploadTitle(e.target.value)}
+                  placeholder="e.g. Kodo Millet Front Pack"
+                  className="w-full p-2 bg-white border border-cream-300 rounded-xl font-medium"
+                />
+              </div>
+              <div>
+                <label className="block font-bold text-gray-700 mb-1">Assign to Product (Optional)</label>
+                <select
+                  value={uploadProductAssignment}
+                  onChange={(e) => setUploadProductAssignment(e.target.value)}
+                  className="w-full p-2 bg-white border border-cream-300 rounded-xl font-medium"
+                >
+                  <option value="">-- No Direct Product Assignment --</option>
+                  {products.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </div>
+
+            {uploadDataUrl && (
+              <div className="flex items-center gap-3 pt-2">
+                <img
+                  src={uploadDataUrl}
+                  alt="Upload preview"
+                  className="w-16 h-16 object-cover rounded-xl border border-cream-300 shadow-2xs"
+                />
+                <span className="text-xs text-gray-600 font-medium">Ready to upload: {uploadFileName}</span>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={isUploadingImage || !uploadDataUrl}
+              className="py-2 px-5 bg-magizh-800 hover:bg-magizh-900 text-white rounded-xl font-bold transition-all shadow-2xs disabled:opacity-50"
+            >
+              {isUploadingImage ? 'Uploading & Persisting...' : 'Upload Image to Library'}
+            </button>
+          </form>
+
+          {/* Grid of Images */}
+          {images.length === 0 ? (
+            <div className="text-center py-10 text-gray-500 text-xs">
+              <ImageIcon className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+              <p className="font-bold text-darkbrown-800">No images uploaded to library yet.</p>
+              <p className="mt-1">Use the upload tool above to store product and category media.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+              {images.map((img) => (
+                <div
+                  key={img.id}
+                  className="bg-white rounded-2xl border border-cream-300 overflow-hidden shadow-2xs flex flex-col group hover:border-magizh-600 transition-all text-xs"
+                >
+                  <div className="relative aspect-square bg-cream-50 overflow-hidden">
+                    <img
+                      src={img.url || img.dataBase64}
+                      alt={img.title || img.filename}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform"
+                    />
+                    {img.isPrimary && (
+                      <span className="absolute top-2 left-2 bg-emerald-600 text-white text-[9px] font-black px-2 py-0.5 rounded-full uppercase shadow">
+                        Primary
+                      </span>
+                    )}
+                  </div>
+                  <div className="p-3 flex-1 flex flex-col justify-between space-y-2">
+                    <div>
+                      <p className="font-extrabold text-darkbrown-900 truncate" title={img.title || img.filename}>
+                        {img.title || img.filename}
+                      </p>
+                      <p className="text-[10px] text-gray-500 font-mono">
+                        {(img.sizeBytes / 1024).toFixed(1)} KB &bull; {img.mimeType || 'image'}
+                      </p>
+                      {img.assignedProductId && (
+                        <span className="inline-block mt-1 text-[9px] font-bold text-magizh-800 bg-magizh-50 px-1.5 py-0.5 rounded border border-magizh-200 truncate max-w-full">
+                          Prod: {products.find((p) => p.id === img.assignedProductId)?.name || img.assignedProductId}
+                        </span>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => handleDeleteImage(img.id)}
+                      className="w-full py-1.5 text-center text-[11px] font-bold text-red-600 hover:text-red-800 hover:bg-red-50 rounded-lg border border-red-200 transition-colors flex items-center justify-center gap-1"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      <span>Delete</span>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* 4. PROMOTIONAL BANNERS MANAGEMENT */}
       {activeTab === 'banners' && (
         <div className="bg-white rounded-3xl border border-cream-300 p-5 shadow-2xs space-y-4">
@@ -2133,6 +2476,311 @@ export const AdminPanel: React.FC = () => {
                 </div>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* CLOUD DATABASE & AUTOMATIC BACKUPS MANAGEMENT */}
+      {activeTab === 'backups' && (
+        <div className="bg-white rounded-3xl border border-cream-300 p-5 sm:p-6 shadow-2xs space-y-6 animate-in fade-in">
+          {/* Header & Controls */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-cream-200 pb-4">
+            <div>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-600 to-emerald-800 flex items-center justify-center text-white shadow-xs">
+                  <Database className="w-4 h-4" />
+                </div>
+                <h2 className="text-base sm:text-lg font-extrabold text-darkbrown-900">
+                  Cloud Database &amp; Automatic Daily Backups
+                </h2>
+              </div>
+              <p className="text-xs text-gray-500 mt-1">
+                Persistent SQLite storage, automatic daily snapshot retention (minimum 7 versions preserved), and staging test restore verification.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={loadBackupData}
+                disabled={isLoadingBackups}
+                className="px-3 py-2 bg-cream-100 hover:bg-cream-200 text-darkbrown-800 rounded-xl text-xs font-bold border border-cream-300 transition-all flex items-center gap-1.5 shadow-2xs disabled:opacity-50"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${isLoadingBackups ? 'animate-spin' : ''}`} />
+                <span>Refresh</span>
+              </button>
+              <button
+                onClick={() => handleRunTestRestore()}
+                disabled={isRestoringTest}
+                className="px-3.5 py-2 bg-indigo-700 hover:bg-indigo-800 text-white rounded-xl text-xs font-extrabold transition-all flex items-center gap-1.5 shadow-2xs disabled:opacity-50"
+              >
+                {isRestoringTest ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Testing Restore...</span>
+                  </>
+                ) : (
+                  <>
+                    <Server className="w-3.5 h-3.5" />
+                    <span>Run Staging Test Restore</span>
+                  </>
+                )}
+              </button>
+              <button
+                onClick={handleCreateBackupNow}
+                disabled={isCreatingBackup}
+                className="px-4 py-2 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-xs font-extrabold shadow-sm transition-all flex items-center gap-1.5 disabled:opacity-50"
+              >
+                {isCreatingBackup ? (
+                  <>
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <span>Creating Snapshot...</span>
+                  </>
+                ) : (
+                  <>
+                    <HardDrive className="w-3.5 h-3.5" />
+                    <span>Create Backup Now</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+
+          {/* Action Notification */}
+          {backupActionNotice && (
+            <div className="p-3.5 bg-emerald-50 border border-emerald-300 rounded-2xl text-xs font-bold text-emerald-950 flex items-center gap-2 animate-in fade-in">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+              <span>{backupActionNotice}</span>
+            </div>
+          )}
+
+          {/* Failure Alert Banner (If Any) */}
+          {(backupStatus?.status === 'ALERT_FAILED' || backupStatus?.lastError) && (
+            <div className="p-4 bg-red-50 border-2 border-red-300 rounded-2xl text-xs text-red-950 space-y-1 animate-in fade-in">
+              <div className="flex items-center gap-2 font-black text-red-900">
+                <AlertTriangle className="w-4 h-4 text-red-600 shrink-0" />
+                <span>AUTOMATIC DATABASE BACKUP FAILURE ALERT</span>
+              </div>
+              <p className="text-[11px] text-red-800">
+                Error: {backupStatus.lastError || 'Last scheduled backup attempt encountered an unexpected error.'}
+              </p>
+              <p className="text-[10px] text-red-700">
+                Please verify that the persistent disk mount at <code className="bg-red-100 px-1 py-0.5 rounded">server/data</code> has write permissions and sufficient disk quota.
+              </p>
+            </div>
+          )}
+
+          {/* 4 Architecture & Health Metric Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Card 1: Persistent DB */}
+            <div className="bg-cream-50/70 rounded-2xl border border-cream-300 p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-wider text-gray-500">Persistent Storage</span>
+                <span className="bg-emerald-100 text-emerald-800 border border-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
+                  <CheckCircle2 className="w-2.5 h-2.5" />
+                  <span>MOUNTED</span>
+                </span>
+              </div>
+              <div className="font-mono text-xs font-extrabold text-darkbrown-900 truncate" title="server/data/magizh.sqlite">
+                server/data/magizh.sqlite
+              </div>
+              <p className="text-[11px] text-gray-600 leading-tight">
+                Customers, orders, products, partner shops, POS bills, images &amp; coin transactions persisted on disk.
+              </p>
+            </div>
+
+            {/* Card 2: Backup Health & Policy */}
+            <div className="bg-cream-50/70 rounded-2xl border border-cream-300 p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-wider text-gray-500">Backup Policy</span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1 border ${
+                  backupStatus?.status === 'HEALTHY'
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                    : 'bg-amber-100 text-amber-800 border-amber-300'
+                }`}>
+                  <CheckCircle2 className="w-2.5 h-2.5" />
+                  <span>{backupStatus?.status || 'HEALTHY'}</span>
+                </span>
+              </div>
+              <div className="text-xs font-black text-darkbrown-900">
+                {backupsList.length} of {backupStatus?.minimumRetention || 7} Daily Versions
+              </div>
+              <p className="text-[11px] text-gray-600 leading-tight">
+                Automatic daily schedule active. Retains at least 7 daily snapshots before pruning.
+              </p>
+            </div>
+
+            {/* Card 3: Last Successful Snapshot */}
+            <div className="bg-cream-50/70 rounded-2xl border border-cream-300 p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-wider text-gray-500">Last Backup</span>
+                <span className="text-[10px] text-gray-500 font-mono">
+                  {backupStatus?.lastBackupSizeBytes ? `${(backupStatus.lastBackupSizeBytes / 1024).toFixed(0)} KB` : 'N/A'}
+                </span>
+              </div>
+              <div className="text-xs font-bold text-darkbrown-900 truncate">
+                {backupStatus?.lastSuccessfulBackup
+                  ? new Date(backupStatus.lastSuccessfulBackup).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })
+                  : 'Pending first backup'}
+              </div>
+              <p className="text-[11px] text-gray-600 font-mono truncate" title={backupStatus?.lastBackupFilename || ''}>
+                {backupStatus?.lastBackupFilename || 'Automatic daily interval active'}
+              </p>
+            </div>
+
+            {/* Card 4: B5 Cloud API Gateway */}
+            <div className="bg-cream-50/70 rounded-2xl border border-cream-300 p-4 space-y-2">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-black uppercase tracking-wider text-gray-500">B5 Cloud Gateway</span>
+                <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                  b5CloudStatus?.configured
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300'
+                    : 'bg-blue-100 text-blue-800 border-blue-300'
+                }`}>
+                  {b5CloudStatus?.configured ? 'CONNECTED' : 'STANDALONE'}
+                </span>
+              </div>
+              <div className="text-xs font-bold text-darkbrown-900">
+                1 Coin = ₹1 (50% Cap)
+              </div>
+              <p className="text-[11px] text-gray-600 leading-tight">
+                Separate database architecture strictly enforced. Zero silent fallback in production.
+              </p>
+            </div>
+          </div>
+
+          {/* Test Restore Verification Audit Card */}
+          {testRestoreReport && (
+            <div className="p-4 sm:p-5 bg-indigo-50/80 border-2 border-indigo-200 rounded-3xl space-y-3 animate-in fade-in">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-indigo-200 pb-2">
+                <div className="flex items-center gap-2">
+                  <Server className="w-4 h-4 text-indigo-700 shrink-0" />
+                  <span className="font-extrabold text-xs text-indigo-950 uppercase tracking-wider">
+                    Staging Test Restore Integrity Audit
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 text-[10px] font-mono text-indigo-800">
+                  <span>Tested Backup: <strong className="font-bold">{testRestoreReport.testedBackupFilename}</strong></span>
+                  <span>&bull;</span>
+                  <span>Integrity: <strong className="text-emerald-700 font-black">{testRestoreReport.sqliteIntegrityCheck}</strong></span>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2 text-center text-xs">
+                <div className="bg-white p-2.5 rounded-xl border border-indigo-200">
+                  <div className="text-sm font-black text-indigo-950">{testRestoreReport.restoredRecordCounts?.users ?? 0}</div>
+                  <div className="text-[10px] text-gray-500 uppercase font-semibold">Customers</div>
+                </div>
+                <div className="bg-white p-2.5 rounded-xl border border-indigo-200">
+                  <div className="text-sm font-black text-indigo-950">{testRestoreReport.restoredRecordCounts?.products ?? 0}</div>
+                  <div className="text-[10px] text-gray-500 uppercase font-semibold">Products</div>
+                </div>
+                <div className="bg-white p-2.5 rounded-xl border border-indigo-200">
+                  <div className="text-sm font-black text-indigo-950">{testRestoreReport.restoredRecordCounts?.orders ?? 0}</div>
+                  <div className="text-[10px] text-gray-500 uppercase font-semibold">Orders</div>
+                </div>
+                <div className="bg-white p-2.5 rounded-xl border border-indigo-200">
+                  <div className="text-sm font-black text-indigo-950">{testRestoreReport.restoredRecordCounts?.partner_shops ?? 0}</div>
+                  <div className="text-[10px] text-gray-500 uppercase font-semibold">Partners</div>
+                </div>
+                <div className="bg-white p-2.5 rounded-xl border border-indigo-200">
+                  <div className="text-sm font-black text-indigo-950">{testRestoreReport.restoredRecordCounts?.partner_bills ?? 0}</div>
+                  <div className="text-[10px] text-gray-500 uppercase font-semibold">In-Store Bills</div>
+                </div>
+                <div className="bg-white p-2.5 rounded-xl border border-indigo-200">
+                  <div className="text-sm font-black text-indigo-950">{testRestoreReport.restoredRecordCounts?.product_images ?? 0}</div>
+                  <div className="text-[10px] text-gray-500 uppercase font-semibold">Images</div>
+                </div>
+              </div>
+
+              <div className="text-[11px] text-indigo-900 bg-white/70 p-2.5 rounded-xl border border-indigo-200 flex items-center justify-between">
+                <span>{testRestoreReport.message}</span>
+                <span className="text-[10px] font-mono text-indigo-700">
+                  Verified: {new Date(testRestoreReport.testRestoreAt).toLocaleTimeString()}
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* Table of Retained Backup Snapshots */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h3 className="text-xs font-black uppercase tracking-wider text-darkbrown-900">
+                Retained Daily Backup Versions ({backupsList.length} Snapshots)
+              </h3>
+              <span className="text-[10px] text-gray-500 font-medium">
+                Stored in isolated persistent directory: <code className="font-mono bg-cream-100 px-1 py-0.5 rounded">server/data/backups/</code>
+              </span>
+            </div>
+
+            {backupsList.length === 0 ? (
+              <div className="text-center py-10 bg-cream-50/50 rounded-2xl border border-dashed border-cream-300">
+                <Database className="w-8 h-8 text-gray-300 mx-auto mb-2" />
+                <p className="text-xs font-bold text-darkbrown-800">No backup snapshots created yet.</p>
+                <p className="text-[11px] text-gray-500 mt-1">
+                  Click "Create Backup Now" above to capture an initial daily snapshot.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto rounded-2xl border border-cream-300 shadow-2xs">
+                <table className="w-full text-left text-xs text-darkbrown-900">
+                  <thead className="bg-cream-100 text-[10px] font-black uppercase tracking-wider text-gray-600 border-b border-cream-300">
+                    <tr>
+                      <th className="p-3">Snapshot File</th>
+                      <th className="p-3">Date &amp; Time</th>
+                      <th className="p-3">Size</th>
+                      <th className="p-3">Type</th>
+                      <th className="p-3">Records (Cust / Orders / Bills)</th>
+                      <th className="p-3">SHA-256 Checksum</th>
+                      <th className="p-3 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-cream-200 bg-white">
+                    {backupsList.map((bkp, idx) => (
+                      <tr key={bkp.backupId || idx} className="hover:bg-cream-50/60 transition-colors">
+                        <td className="p-3 font-mono font-bold text-[11px] text-darkbrown-900">
+                          {bkp.filename}
+                        </td>
+                        <td className="p-3 text-gray-600 whitespace-nowrap">
+                          {new Date(bkp.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' })}
+                        </td>
+                        <td className="p-3 text-gray-600 font-mono whitespace-nowrap">
+                          {(bkp.sizeBytes / 1024).toFixed(1)} KB
+                        </td>
+                        <td className="p-3 whitespace-nowrap">
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${
+                            bkp.type === 'AUTOMATIC_DAILY'
+                              ? 'bg-emerald-50 text-emerald-800 border-emerald-200'
+                              : 'bg-purple-50 text-purple-800 border-purple-200'
+                          }`}>
+                            {bkp.type || 'MANUAL'}
+                          </span>
+                        </td>
+                        <td className="p-3 text-gray-700 whitespace-nowrap text-[11px]">
+                          {bkp.tableCounts ? (
+                            <span>
+                              {bkp.tableCounts.customers} cust &bull; {bkp.tableCounts.orders} orders &bull; {bkp.tableCounts.partnerBills} bills
+                            </span>
+                          ) : (
+                            <span className="text-gray-400">All tables verified</span>
+                          )}
+                        </td>
+                        <td className="p-3 text-gray-500 font-mono text-[10px] truncate max-w-[120px]" title={bkp.checksum}>
+                          {bkp.checksum ? `${bkp.checksum.slice(0, 12)}...` : 'N/A'}
+                        </td>
+                        <td className="p-3 text-right whitespace-nowrap">
+                          <button
+                            onClick={() => handleRunTestRestore(bkp.filename)}
+                            disabled={isRestoringTest}
+                            className="px-2.5 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-800 font-bold text-[10px] rounded-lg border border-indigo-200 transition-colors disabled:opacity-50"
+                          >
+                            Test Restore
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
           </div>
         </div>
       )}

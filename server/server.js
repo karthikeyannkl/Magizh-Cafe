@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
 import { initDatabase } from './db.js';
 import { apiRouter } from './api.js';
+import { backupService } from './backupService.js';
 
 dotenv.config();
 
@@ -56,6 +57,8 @@ if (process.env.NODE_ENV === 'production' || fs.existsSync(DIST_DIR)) {
 async function start() {
   try {
     await initDatabase();
+    // Start automated daily backup scheduler
+    backupService.startScheduler();
     app.listen(PORT, '0.0.0.0', () => {
       console.log(`[Magizh Server] Backend listening on http://0.0.0.0:${PORT}`);
     });
