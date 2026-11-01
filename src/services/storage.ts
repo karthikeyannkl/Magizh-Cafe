@@ -360,13 +360,28 @@ export const StorageService = {
     emit('currentUserChanged', user);
   },
 
-  logout(): void {
+  logout(role?: 'customer' | 'admin' | 'partner'): void {
+    // Portal sessions are isolated. A portal logout must not destroy credentials
+    // belonging to another portal on the same device.
+    if (role === 'admin') {
+      localStorage.removeItem('magizh_admin_token');
+      localStorage.removeItem('magizh_admin_user');
+    } else if (role === 'partner') {
+      localStorage.removeItem('magizh_partner_token');
+      localStorage.removeItem('magizh_partner_user');
+    } else if (role === 'customer') {
+      localStorage.removeItem('magizh_auth_token');
+      localStorage.removeItem('magizh_customer_token');
+    } else {
+      // Backward-compatible full logout for callers that explicitly need it.
+      localStorage.removeItem('magizh_auth_token');
+      localStorage.removeItem('magizh_customer_token');
+      localStorage.removeItem('magizh_admin_token');
+      localStorage.removeItem('magizh_admin_user');
+      localStorage.removeItem('magizh_partner_token');
+      localStorage.removeItem('magizh_partner_user');
+    }
     localStorage.removeItem(KEYS.CURRENT_USER);
-    localStorage.removeItem('magizh_auth_token');
-    localStorage.removeItem('magizh_customer_token');
-    localStorage.removeItem('magizh_admin_token');
-    localStorage.removeItem('magizh_partner_token');
-    sessionStorage.clear();
     setStorage(KEYS.CURRENT_USER, DEFAULT_GUEST_USER);
     emit('currentUserChanged', DEFAULT_GUEST_USER);
   },

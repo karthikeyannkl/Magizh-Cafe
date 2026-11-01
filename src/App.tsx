@@ -140,6 +140,10 @@ export default function App() {
     if (typeof window !== 'undefined' && window.location.pathname !== targetPath) {
       window.history.pushState({ tab }, '', targetPath);
     }
+    // Each destination page starts at its heading, not the previous page's scroll offset.
+    if (typeof window !== 'undefined') {
+      window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: 'auto' }));
+    }
   };
 
   // Browser Back / Forward Button Listener
@@ -147,6 +151,7 @@ export default function App() {
     const handlePopState = () => {
       const route = getRouteFromPath(window.location.pathname);
       setCurrentTab(route);
+      window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: 'auto' }));
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -189,7 +194,7 @@ export default function App() {
   const handleBuyNow = (product: Product, variant: WeightVariant, quantity: number) => {
     handleAddToCart(product, variant, quantity);
     setSelectedProduct(null);
-    navigateTo('checkout');
+    navigateTo('cart');
   };
 
   const handleProceedToCheckout = (coupon?: Coupon) => {
@@ -315,9 +320,9 @@ export default function App() {
         <AdminHeader
           onNavigateStorefront={() => navigateTo('home')}
           onLogout={() => {
-            StorageService.logout();
+            StorageService.logout('admin');
             setCurrentUser(StorageService.getCurrentUser());
-            navigateTo('home');
+            navigateTo('admin');
           }}
         />
       )}
@@ -326,9 +331,9 @@ export default function App() {
         <PartnerHeader
           onNavigateStorefront={() => navigateTo('home')}
           onLogout={() => {
-            StorageService.logout();
+            StorageService.logout('partner');
             setCurrentUser(StorageService.getCurrentUser());
-            navigateTo('home');
+            navigateTo('partner');
           }}
         />
       )}

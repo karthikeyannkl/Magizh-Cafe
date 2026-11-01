@@ -59,11 +59,11 @@ export const PartnerDashboard: React.FC = () => {
   const [isBillingModalOpen, setIsBillingModalOpen] = useState(false);
   const [selectedReceipt, setSelectedReceipt] = useState<PartnerLocalTransaction | null>(null);
 
-  const [posCustomerPhone, setPosCustomerPhone] = useState('9876543210');
+  const [posCustomerPhone, setPosCustomerPhone] = useState('');
   const [posCustomer, setPosCustomer] = useState<any | null>(null);
   const [posCustomerCoins, setPosCustomerCoins] = useState<number>(0);
-  const [posBillAmount, setPosBillAmount] = useState<number>(600);
-  const [posCoinsToRedeem, setPosCoinsToRedeem] = useState<number>(200);
+  const [posBillAmount, setPosBillAmount] = useState<number>(0);
+  const [posCoinsToRedeem, setPosCoinsToRedeem] = useState<number>(0);
   const [posSummary, setPosSummary] = useState('Native Cold-Pressed Gingelly Oil (1L), Karuppu Kavuni Millet (1kg)');
   const [posError, setPosError] = useState<string | null>(null);
 
@@ -131,7 +131,7 @@ export const PartnerDashboard: React.FC = () => {
   };
 
   const handlePartnerLogout = () => {
-    StorageService.logout();
+    StorageService.logout('partner');
     window.location.href = '/partner';
   };
 

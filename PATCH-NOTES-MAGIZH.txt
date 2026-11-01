@@ -1,0 +1,17 @@
+MAGIZH SHOPPING - SOURCE PATCH NOTES
+===================================
+
+Patched in this package:
+1. Customer route navigation resets scroll to the top, including browser back/forward.
+2. Buy Now adds the item to cart and opens the cart/review stage instead of jumping directly to final checkout.
+3. Admin and Partner logout now clear only their own portal credentials and return to their own portal login route.
+4. Partner POS no longer pre-fills a sample customer mobile number, bill amount, or coin redemption amount.
+
+IMPORTANT - NOT CLAIMED AS COMPLETE:
+- This source ZIP does not prove a live Cloudflare D1 connection. D1 must be verified against the actual deployed environment.
+- The existing partner bill workflow supports customer mobile lookup, pending bill creation, customer payment choice (cash/UPI), partner payment-received confirmation, and admin approval in the application source. This patch does not certify that workflow in production.
+- Automatic SMS delivery is NOT enabled by this source alone. It requires an SMS provider account, sender/template approval where applicable, and server-side API credentials. No provider credentials have been added.
+- WhatsApp share/manual notification is not the same as automatic SMS.
+- Persistent product/banner image storage and Cloudflare R2 upload still require a real configured storage endpoint and end-to-end upload test.
+- Do not deploy this ZIP to production until it passes local build, staging tests, D1 connection verification, and role-auth tests.
+- B5/BORNTOWIN5 code, data, credentials, and services were not intentionally modified.
