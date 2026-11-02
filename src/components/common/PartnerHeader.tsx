@@ -20,13 +20,12 @@ export const PartnerHeader: React.FC<PartnerHeaderProps> = ({
       const stored = localStorage.getItem('magizh_partner_user');
       if (stored) return JSON.parse(stored);
     } catch (_) {}
-    const current = StorageService.getCurrentUser();
     return {
-      id: current.id || '',
-      shopName: current.name ? `${current.name}'s Partner Shop` : 'Partner Shop',
-      ownerName: current.name || '',
-      status: 'active',
-      partnerCode: current.customerCode || '',
+      id: 'MAG-PTR-101',
+      shopName: 'Salem Traditional Organic Store',
+      ownerName: 'Sundaramurthy S',
+      status: 'approved',
+      partnerCode: 'MAG-PTR-101',
     };
   });
 
@@ -41,30 +40,30 @@ export const PartnerHeader: React.FC<PartnerHeaderProps> = ({
   return (
     <header className="sticky top-0 z-40 bg-gradient-to-r from-blue-950 via-slate-900 to-blue-900 text-white shadow-md border-b border-blue-800/60">
       {/* Top Identity Bar */}
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 py-2 sm:py-2.5 flex items-center justify-between gap-2 sm:gap-3">
+      <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
         {/* Left: Partner Portal Brand */}
-        <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-700 flex items-center justify-center text-white shadow-inner shrink-0 border border-blue-400/30">
-            <Store className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-700 flex items-center justify-center text-white shadow-inner shrink-0 border border-blue-400/30">
+            <Store className="w-5 h-5 text-white" />
           </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-1.5 sm:gap-2">
-              <span className="font-extrabold text-xs sm:text-base tracking-tight text-white truncate">
+          <div>
+            <div className="flex items-center gap-2">
+              <span className="font-extrabold text-base tracking-tight text-white">
                 MAGIZH PARTNER POS
               </span>
-              <span className="hidden xs:inline-flex text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 px-1.5 sm:px-2 py-0.5 rounded-full items-center gap-1 shrink-0">
+              <span className="text-[10px] font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/40 px-2 py-0.5 rounded-full flex items-center gap-1">
                 <CheckCircle2 className="w-3 h-3 text-emerald-400" />
-                <span className="hidden sm:inline">Verified Partner</span>
+                <span>Verified Partner</span>
               </span>
             </div>
-            <p className="text-[11px] sm:text-xs text-blue-200/90 font-medium truncate max-w-[150px] xs:max-w-[200px] sm:max-w-none">
+            <p className="text-xs text-blue-200/90 font-medium truncate max-w-[200px] sm:max-w-none">
               {partner.shopName || 'Franchise Partner'} &bull; ID: <span className="font-mono font-bold text-white">{partner.partnerCode || partner.id}</span>
             </p>
           </div>
         </div>
 
         {/* Right: Actions & Partner Logout */}
-        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3">
           {/* Return to Customer Storefront */}
           <button
             onClick={onNavigateStorefront}
@@ -77,12 +76,11 @@ export const PartnerHeader: React.FC<PartnerHeaderProps> = ({
           {/* Visible Partner Logout Button */}
           <button
             onClick={handleLogoutClick}
-            className="flex items-center gap-1 text-xs font-bold text-red-200 hover:text-white bg-red-900/60 hover:bg-red-800 px-2.5 sm:px-3 py-1.5 rounded-xl border border-red-700/60 transition-colors shadow-2xs shrink-0"
+            className="flex items-center gap-1.5 text-xs font-bold text-red-200 hover:text-white bg-red-900/60 hover:bg-red-800 px-3 py-1.5 rounded-xl border border-red-700/60 transition-colors shadow-2xs"
             title="Log out of Partner Portal"
           >
             <LogOut className="w-3.5 h-3.5 text-red-300" />
-            <span className="hidden sm:inline">Partner </span>
-            <span>Logout</span>
+            <span>Partner Logout</span>
           </button>
         </div>
       </div>

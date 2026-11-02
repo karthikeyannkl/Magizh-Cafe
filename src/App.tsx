@@ -140,10 +140,6 @@ export default function App() {
     if (typeof window !== 'undefined' && window.location.pathname !== targetPath) {
       window.history.pushState({ tab }, '', targetPath);
     }
-    // Each destination page starts at its heading, not the previous page's scroll offset.
-    if (typeof window !== 'undefined') {
-      window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: 'auto' }));
-    }
   };
 
   // Browser Back / Forward Button Listener
@@ -151,7 +147,6 @@ export default function App() {
     const handlePopState = () => {
       const route = getRouteFromPath(window.location.pathname);
       setCurrentTab(route);
-      window.requestAnimationFrame(() => window.scrollTo({ top: 0, left: 0, behavior: 'auto' }));
     };
 
     window.addEventListener('popstate', handlePopState);
@@ -194,7 +189,7 @@ export default function App() {
   const handleBuyNow = (product: Product, variant: WeightVariant, quantity: number) => {
     handleAddToCart(product, variant, quantity);
     setSelectedProduct(null);
-    navigateTo('cart');
+    navigateTo('checkout');
   };
 
   const handleProceedToCheckout = (coupon?: Coupon) => {
@@ -316,24 +311,24 @@ export default function App() {
   return (
     <div className="min-h-screen flex flex-col bg-cream-100 text-darkbrown-900 selection:bg-magizh-100 selection:text-magizh-900">
       {/* Route-Specific Authenticated Layout Headers */}
-      {isAdminRoute && currentUser.role === 'admin' && (
+      {isAdminRoute && (
         <AdminHeader
           onNavigateStorefront={() => navigateTo('home')}
           onLogout={() => {
-            StorageService.logout('admin');
+            StorageService.logout();
             setCurrentUser(StorageService.getCurrentUser());
-            navigateTo('admin');
+            navigateTo('home');
           }}
         />
       )}
 
-      {isPartnerRoute && currentUser.role === 'partner' && (
+      {isPartnerRoute && (
         <PartnerHeader
           onNavigateStorefront={() => navigateTo('home')}
           onLogout={() => {
-            StorageService.logout('partner');
+            StorageService.logout();
             setCurrentUser(StorageService.getCurrentUser());
-            navigateTo('partner');
+            navigateTo('home');
           }}
         />
       )}
@@ -348,7 +343,7 @@ export default function App() {
       )}
 
       {/* Main Dynamic View */}
-      <main className="flex-1 w-full min-w-0 max-w-full overflow-x-clip">{renderContent()}</main>
+      <main className="flex-1 w-full">{renderContent()}</main>
 
       {/* Customer Footer (Strictly isolated to Customer view, never on Partner or Admin) */}
       {isCustomerRoute && <CustomerFooter onNavigate={navigateTo} />}

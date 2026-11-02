@@ -360,28 +360,13 @@ export const StorageService = {
     emit('currentUserChanged', user);
   },
 
-  logout(role?: 'customer' | 'admin' | 'partner'): void {
-    // Portal sessions are isolated. A portal logout must not destroy credentials
-    // belonging to another portal on the same device.
-    if (role === 'admin') {
-      localStorage.removeItem('magizh_admin_token');
-      localStorage.removeItem('magizh_admin_user');
-    } else if (role === 'partner') {
-      localStorage.removeItem('magizh_partner_token');
-      localStorage.removeItem('magizh_partner_user');
-    } else if (role === 'customer') {
-      localStorage.removeItem('magizh_auth_token');
-      localStorage.removeItem('magizh_customer_token');
-    } else {
-      // Backward-compatible full logout for callers that explicitly need it.
-      localStorage.removeItem('magizh_auth_token');
-      localStorage.removeItem('magizh_customer_token');
-      localStorage.removeItem('magizh_admin_token');
-      localStorage.removeItem('magizh_admin_user');
-      localStorage.removeItem('magizh_partner_token');
-      localStorage.removeItem('magizh_partner_user');
-    }
+  logout(): void {
     localStorage.removeItem(KEYS.CURRENT_USER);
+    localStorage.removeItem('magizh_auth_token');
+    localStorage.removeItem('magizh_customer_token');
+    localStorage.removeItem('magizh_admin_token');
+    localStorage.removeItem('magizh_partner_token');
+    sessionStorage.clear();
     setStorage(KEYS.CURRENT_USER, DEFAULT_GUEST_USER);
     emit('currentUserChanged', DEFAULT_GUEST_USER);
   },
@@ -473,26 +458,6 @@ export const StorageService = {
     }
     setStorage(KEYS.PRODUCTS, products);
     emit('productsChanged', products);
-
-    // Backend database persistence
-    const adminToken = this.getAdminToken();
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (adminToken) headers['Authorization'] = `Bearer ${adminToken}`;
-
-    fetch(`/api/products/${encodeURIComponent(product.id)}`, {
-      method: 'PUT',
-      headers,
-      body: JSON.stringify(product),
-    }).then(async (res) => {
-      if (res.status === 404) {
-        return fetch('/api/products', {
-          method: 'POST',
-          headers,
-          body: JSON.stringify(product),
-        });
-      }
-    }).catch((err) => console.warn('[StorageService] Product backend sync error:', err));
-
     return product;
   },
 
@@ -501,14 +466,6 @@ export const StorageService = {
     const isReferencedInOrders = orders.some((o) =>
       o.items.some((it) => it.productId === productId)
     );
-
-    const adminToken = this.getAdminToken();
-    const headers: Record<string, string> = {};
-    if (adminToken) headers['Authorization'] = `Bearer ${adminToken}`;
-    fetch(`/api/products/${encodeURIComponent(productId)}`, {
-      method: 'DELETE',
-      headers,
-    }).catch((err) => console.warn('[StorageService] Product delete backend sync error:', err));
 
     if (isReferencedInOrders) {
       const prods = this.getProducts(true);
@@ -548,29 +505,12 @@ export const StorageService = {
     }
     setStorage(KEYS.CATEGORIES, categories);
     emit('categoriesChanged', categories);
-
-    const adminToken = this.getAdminToken();
-    const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-    if (adminToken) headers['Authorization'] = `Bearer ${adminToken}`;
-    fetch('/api/categories', {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(cat),
-    }).catch((err) => console.warn('[StorageService] Category backend sync error:', err));
   },
 
   deleteCategory(id: string): void {
     const categories = this.getCategories().filter((c) => c.id !== id);
     setStorage(KEYS.CATEGORIES, categories);
     emit('categoriesChanged', categories);
-
-    const adminToken = this.getAdminToken();
-    const headers: Record<string, string> = {};
-    if (adminToken) headers['Authorization'] = `Bearer ${adminToken}`;
-    fetch(`/api/categories/${encodeURIComponent(id)}`, {
-      method: 'DELETE',
-      headers,
-    }).catch((err) => console.warn('[StorageService] Category delete backend sync error:', err));
   },
 
   // Promotional Banners
@@ -650,26 +590,6 @@ export const StorageService = {
     orders.unshift(order);
     setStorage(KEYS.ORDERS, orders);
     emit('ordersChanged', orders);
-
-    // Secure backend database persistence
-    fetch('/api/orders', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(order),
-    }).then(async (res) => {
-      if (res.ok) {
-        const data = await res.json();
-        if (data.order) {
-          const currentOrders = this.getOrders();
-          const idx = currentOrders.findIndex((o) => o.id === order.id);
-          if (idx >= 0) {
-            currentOrders[idx] = data.order;
-            setStorage(KEYS.ORDERS, currentOrders);
-            emit('ordersChanged', currentOrders);
-          }
-        }
-      }
-    }).catch((err) => console.warn('[StorageService] Order backend sync error:', err));
   },
 
   updateOrderStatus(orderId: string, status: OrderStatus, note: string = ''): Order | undefined {
@@ -687,14 +607,6 @@ export const StorageService = {
 
     setStorage(KEYS.ORDERS, orders);
     emit('ordersChanged', orders);
-
-    // Secure backend database persistence
-    fetch(`/api/orders/${encodeURIComponent(orderId)}/status`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ status, note }),
-    }).catch((err) => console.warn('[StorageService] Order status backend sync error:', err));
-
     return order;
   },
 
@@ -1097,72 +1009,4 @@ export const StorageService = {
     setStorage(KEYS.AUDIT_LOGS, logs.slice(0, 100));
     emit('auditLogsChanged', logs);
   },
-
-  // Authoritative Backend Database Synchronization
-  async syncFromBackend(): Promise<void> {
-    try {
-      // 1. Products from backend database
-      const prodRes = await fetch('/api/products?includeArchived=true').catch(() => null);
-      if (prodRes && prodRes.ok) {
-        const data = await prodRes.json();
-        if (data.products && Array.isArray(data.products) && data.products.length > 0) {
-          setStorage(KEYS.PRODUCTS, data.products);
-          emit('productsChanged', data.products);
-        }
-      }
-
-      // 2. Categories from backend database
-      const catRes = await fetch('/api/categories').catch(() => null);
-      if (catRes && catRes.ok) {
-        const data = await catRes.json();
-        if (data.categories && Array.isArray(data.categories) && data.categories.length > 0) {
-          setStorage(KEYS.CATEGORIES, data.categories);
-          emit('categoriesChanged', data.categories);
-        }
-      }
-
-      // 3. Banners from backend database
-      const banRes = await fetch('/api/banners').catch(() => null);
-      if (banRes && banRes.ok) {
-        const data = await banRes.json();
-        if (data.banners && Array.isArray(data.banners) && data.banners.length > 0) {
-          setStorage(KEYS.BANNERS, data.banners);
-          emit('bannersChanged', data.banners);
-        }
-      }
-
-      // 4. Orders from backend database
-      const currentUser = this.getCurrentUser();
-      const orderUrl = currentUser && currentUser.id && !currentUser.isGuest
-        ? `/api/orders?customerId=${encodeURIComponent(currentUser.id)}`
-        : '/api/orders';
-      const ordRes = await fetch(orderUrl).catch(() => null);
-      if (ordRes && ordRes.ok) {
-        const data = await ordRes.json();
-        if (data.orders && Array.isArray(data.orders)) {
-          setStorage(KEYS.ORDERS, data.orders);
-          emit('ordersChanged', data.orders);
-        }
-      }
-
-      // 5. Coupons from backend database
-      const coupRes = await fetch('/api/coupons').catch(() => null);
-      if (coupRes && coupRes.ok) {
-        const data = await coupRes.json();
-        if (data.coupons && Array.isArray(data.coupons)) {
-          setStorage(KEYS.COUPONS, data.coupons);
-          emit('couponsChanged', data.coupons);
-        }
-      }
-    } catch (err) {
-      console.warn('[StorageService] Background sync error:', err);
-    }
-  },
 };
-
-// Auto-trigger background sync in browser environment
-if (typeof window !== 'undefined') {
-  setTimeout(() => {
-    StorageService.syncFromBackend();
-  }, 100);
-}
