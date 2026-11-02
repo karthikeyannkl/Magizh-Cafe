@@ -404,7 +404,8 @@ export default function App() {
         <BottomNav
           currentTab={currentTab}
           onNavigate={(tab) => navigateTo(tab)}
-          role={currentUser.role}
+          // Always render customer tabs on customer routes; portal roles stay isolated.
+          role="customer"
           cartCount={cartCount}
           coinBalance={coinBalance}
         />
